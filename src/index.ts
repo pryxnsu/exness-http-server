@@ -3,6 +3,7 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import { env } from './env';
 import { HTTP_RESPONSE_CODE } from './constant';
+import { connectDb, db } from './lib/db';
 
 const app = express();
 app.use(
@@ -39,8 +40,16 @@ app.use((req: Request, res: Response, next: NextFunction) => {
     });
 });
 
-// start server
-app.listen(env.port, () => {
-    const url = env.nodeEnv === 'production' ? env.serverUrl : `http://localhost:${env.port}`;
-    console.log(`HTTP server running at ${url}`);
-});
+// connect db and start server
+connectDb()
+    .then(() => {
+        app.listen(env.port, () => {
+            const url =
+                env.nodeEnv === 'production' ? env.serverUrl : `http://localhost:${env.port}`;
+            console.log(`HTTP server running at ${url}`);
+        });
+    })
+    .catch((err: unknown) => {
+        console.error('[DB] Connection failed', err);
+        process.exit(1);
+    });
