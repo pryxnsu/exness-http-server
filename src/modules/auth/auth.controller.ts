@@ -13,7 +13,11 @@ import { User } from '../../lib/db/schema';
 import { createUser, getUserByEmail } from '../../lib/db/queries/auth.queries';
 import { generateAccessAndRefreshToken, userReqInfo } from './auth.service';
 import { createSession } from '../../lib/db/queries/session.queries';
-import { createAccount, getAccountById } from '../../lib/db/queries/account.queries';
+import {
+    createAccount,
+    getAccountById,
+    updateAccount,
+} from '../../lib/db/queries/account.queries';
 
 const oauth2Client = new google.auth.OAuth2(
     env.googleClientId,
@@ -64,9 +68,19 @@ export const googleCallback = async (c: Context) => {
     if (account) {
         // user account already exist -> login
         user = await getUserByEmail(email);
+
+        // update account tokens in new login
+        await updateAccount(account.id, {
+            idToken: tokens.id_token as string,
+            accessToken: tokens.access_token as string,
+            refreshToken: tokens.refresh_token as string,
+            accessTokenExpiresAt: new Date(tokens.expiry_date as number),
+            refreshTokenExpiresAt: new Date(tokens.expiry_date as number),
+            scope: tokens.scope as string,
+        });
     } else {
         // user account doesn't exist -> signup
-        user = await db.transaction(async (tx: any) => {
+        user = await db.transaction(async (tx: any): Promise<User | null> => {
             const newUser = await createUser({
                 tx,
                 name: name,

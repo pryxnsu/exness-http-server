@@ -62,3 +62,22 @@ export async function createAccount({
         });
     }
 }
+
+export async function updateAccount(
+    id: string,
+    values: Partial<typeof account.$inferInsert>
+): Promise<void> {
+    try {
+        await db
+            .update(account)
+            .set({
+                ...values,
+            })
+            .where(eq(account.id, id));
+    } catch (err: unknown) {
+        console.error('[DB Error] Failed to update account', err);
+        throw new HTTPException(HTTP_RESPONSE_CODE.SERVER_ERROR, {
+            message: 'Failed to update account',
+        });
+    }
+}
