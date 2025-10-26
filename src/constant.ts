@@ -15,3 +15,9 @@ export const HTTP_RESPONSE_CODE = {
     BAD_GATEWAY: 502,
     SERVICE_UNAVAILABLE: 503,
 } as const;
+
+// time in seconds
+export const TIME = {
+    ONE_DAY: 60 * 60 * 24,
+    SEVEN_DAYS: 60 * 60 * 24 * 7,
+} as const;

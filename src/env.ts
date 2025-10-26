@@ -8,6 +8,11 @@ export type ExnessEnv = {
     clientUrl: string;
     serverUrl: string;
     cookieSecret: string;
+    googleClientId: string;
+    googleClientSecret: string;
+    jwtSecret: string;
+    refreshTokenName: string;
+    accessTokenName: string;
 };
 
 export function getEnv(key: string): string {
@@ -25,4 +30,9 @@ export const env = {
     clientUrl: getEnv('CLIENT_URL'),
     serverUrl: getEnv('SERVER_URL'),
     cookieSecret: getEnv('COOKIE_SECRET'),
+    googleClientId: getEnv('GOOGLE_CLIENT_ID'),
+    googleClientSecret: getEnv('GOOGLE_CLIENT_SECRET'),
+    jwtSecret: getEnv('JWT_SECRET'),
+    refreshTokenName: getEnv('ACCESS_TOKEN_NAME'),
+    accessTokenName: getEnv('REFRESH_TOKEN_NAME'),
 } as ExnessEnv;

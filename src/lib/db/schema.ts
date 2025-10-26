@@ -77,3 +77,5 @@ export const account = pgTable(
 );
 
 export type User = InferSelectModel<typeof user>;
+export type Session = InferSelectModel<typeof session>;
+export type Account = InferSelectModel<typeof account>;

@@ -12,7 +12,7 @@ export const connectDb = async () => {
     const client = await pool.connect();
     try {
         await client.query('SELECT 1');
-        console.log('[DB] Connection successful');
+        console.log('Database Connection successful');
     } finally {
         client.release();
     }
