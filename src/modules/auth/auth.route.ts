@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { googleLogin, googleCallback, logout } from './auth.controller';
-import { auth } from '../../middlewares/exception.middleware';
+import { auth } from '../../middlewares/auth.middleware';
 
 export const authRouter = new Hono();
 
