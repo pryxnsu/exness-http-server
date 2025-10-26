@@ -20,6 +20,18 @@ export async function getAccountById(accId: string): Promise<Account | null> {
     }
 }
 
+export async function getAccountByUserId(userId: string): Promise<Account | null> {
+    try {
+        const [a] = await db.select().from(account).where(eq(account.userId, userId)).$withCache();
+        return a || null;
+    } catch (err: unknown) {
+        console.error('[DB error] Failed to fetch account:', err);
+        throw new HTTPException(HTTP_RESPONSE_CODE.SERVER_ERROR, {
+            message: 'Failed to fetch account',
+        });
+    }
+}
+
 export async function createAccount({
     tx,
     userId,

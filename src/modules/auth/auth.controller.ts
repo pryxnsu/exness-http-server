@@ -4,7 +4,7 @@
 
 import type { Context } from 'hono';
 import { HTTPException } from 'hono/http-exception';
-import { setCookie } from 'hono/cookie';
+import { getCookie, setCookie, deleteCookie } from 'hono/cookie';
 import { google } from 'googleapis';
 import { env } from '../../env';
 import { HTTP_RESPONSE_CODE, TIME } from '../../constant';
@@ -12,10 +12,11 @@ import { db } from '../../lib/db';
 import { User } from '../../lib/db/schema';
 import { createUser, getUserByEmail } from '../../lib/db/queries/auth.queries';
 import { generateAccessAndRefreshToken, userReqInfo } from './auth.service';
-import { createSession } from '../../lib/db/queries/session.queries';
+import { createSession, updateSession } from '../../lib/db/queries/session.queries';
 import {
     createAccount,
     getAccountById,
+    getAccountByUserId,
     updateAccount,
 } from '../../lib/db/queries/account.queries';
 
@@ -139,4 +140,36 @@ export const googleCallback = async (c: Context) => {
     });
 
     return c.redirect(`${env.clientUrl}/webtrading`);
+};
+
+export const logout = async (c: Context) => {
+    const user = c.get('user');
+    const accessToken = getCookie(c, env.accessTokenName);
+    await updateSession(accessToken as string);
+
+    if (accessToken && user?.id) {
+        // revoke tokens of google
+        const account = await getAccountByUserId(user?.id as string);
+        if (account?.accessToken) {
+            await oauth2Client.revokeToken(account?.accessToken as string);
+        }
+        if (account?.id) {
+            await updateAccount(account.id, {
+                idToken: null,
+                accessToken: null,
+                refreshToken: null,
+                accessTokenExpiresAt: undefined,
+                refreshTokenExpiresAt: undefined,
+            });
+        }
+    }
+    // update session and set revoke true
+    await updateSession(accessToken as string);
+
+    deleteCookie(c, env.accessTokenName);
+    deleteCookie(c, env.refreshTokenName);
+    return c.json(
+        { success: true, message: 'Logged out successfully' },
+        HTTP_RESPONSE_CODE.SUCCESS
+    );
 };
