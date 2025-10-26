@@ -8,11 +8,11 @@ async function generateAccessAndRefreshToken(
     user: User
 ): Promise<{ accessToken: string; refreshToken: string }> {
     const accessToken = await sign(
-        { ...user, exp: Math.floor(Date.now() / 1000) + TIME.ONE_DAY },
+        { user, exp: Math.floor(Date.now() / 1000) + TIME.ONE_DAY },
         env.jwtSecret
     );
     const refreshToken = await sign(
-        { ...user, exp: Math.floor(Date.now() / 1000) + TIME.SEVEN_DAYS },
+        { id: user.id, exp: Math.floor(Date.now() / 1000) + TIME.SEVEN_DAYS },
         env.jwtSecret
     );
 
