@@ -1,0 +1,1 @@
+ALTER TABLE "favorite_instrument" ADD COLUMN "exchange" text;

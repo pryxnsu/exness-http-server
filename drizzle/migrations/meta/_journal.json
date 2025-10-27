@@ -1,34 +1,41 @@
 {
-    "version": "7",
-    "dialect": "postgresql",
-    "entries": [
-        {
-            "idx": 0,
-            "version": "7",
-            "when": 1761388506253,
-            "tag": "0000_fat_gravity",
-            "breakpoints": true
-        },
-        {
-            "idx": 1,
-            "version": "7",
-            "when": 1761506567764,
-            "tag": "0001_shocking_young_avengers",
-            "breakpoints": true
-        },
-        {
-            "idx": 2,
-            "version": "7",
-            "when": 1761507354361,
-            "tag": "0002_powerful_silver_fox",
-            "breakpoints": true
-        },
-        {
-            "idx": 3,
-            "version": "7",
-            "when": 1761550787837,
-            "tag": "0003_sharp_overlord",
-            "breakpoints": true
-        }
-    ]
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1761388506253,
+      "tag": "0000_fat_gravity",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1761506567764,
+      "tag": "0001_shocking_young_avengers",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1761507354361,
+      "tag": "0002_powerful_silver_fox",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1761550787837,
+      "tag": "0003_sharp_overlord",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1761566096952,
+      "tag": "0004_powerful_strong_guy",
+      "breakpoints": true
+    }
+  ]
 }
