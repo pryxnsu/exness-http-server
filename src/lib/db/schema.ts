@@ -1,5 +1,14 @@
 import { InferSelectModel } from 'drizzle-orm';
-import { boolean, index, pgTable, text, timestamp, varchar } from 'drizzle-orm/pg-core';
+import {
+    boolean,
+    index,
+    pgTable,
+    text,
+    timestamp,
+    varchar,
+    numeric,
+    integer,
+} from 'drizzle-orm/pg-core';
 import { v4 as uuid } from 'uuid';
 
 export const user = pgTable('user', {
@@ -76,6 +85,49 @@ export const account = pgTable(
     ]
 );
 
+export const wallet = pgTable(
+    'wallet',
+    {
+        id: text('id')
+            .primaryKey()
+            .$defaultFn(() => uuid()),
+        type: varchar('type', { enum: ['real', 'demo'] })
+            .notNull()
+            .default('demo'),
+        balance: numeric('balance', { precision: 14, scale: 2 }).default('0.00'),
+        equity: numeric('equity', { precision: 14, scale: 2 }).default('0.00'),
+        margin: numeric('margin', { precision: 14, scale: 2 }).default('0.00'),
+        freeMargin: numeric('free_margin', { precision: 14, scale: 2 }).default('0.00'),
+        currency: text('currency').notNull().default('USD'),
+        userId: text('user_id')
+            .notNull()
+            .references(() => user.id, { onDelete: 'cascade' }),
+        createdAt: timestamp('created_at').notNull().defaultNow(),
+        updatedAt: timestamp('updated_at')
+            .notNull()
+            .defaultNow()
+            .$onUpdate(() => new Date()),
+    },
+    t => [index('wallet_user_id_idx').on(t.userId)]
+);
+
+export const favoriteInstrument = pgTable(
+    'favorite_instrument',
+    {
+        id: text('id')
+            .primaryKey()
+            .$defaultFn(() => uuid()),
+        symbol: text('symbol'),
+        sortOrder: integer('sort_order'),
+        userId: text('user_id')
+            .notNull()
+            .references(() => user.id, { onDelete: 'cascade' }),
+    },
+    t => [index('favorite_instruments_user_id_idx').on(t.userId)]
+);
+
 export type User = InferSelectModel<typeof user>;
 export type Session = InferSelectModel<typeof session>;
 export type Account = InferSelectModel<typeof account>;
+export type Wallet = InferSelectModel<typeof wallet>;
+export type FavoriteInstrument = InferSelectModel<typeof favoriteInstrument>;
