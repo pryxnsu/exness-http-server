@@ -11,8 +11,8 @@ export type ExnessEnv = {
     googleClientId: string;
     googleClientSecret: string;
     jwtSecret: string;
-    refreshTokenName: string;
     accessTokenName: string;
+    refreshTokenName: string;
 };
 
 export function getEnv(key: string): string {
@@ -33,6 +33,6 @@ export const env = {
     googleClientId: getEnv('GOOGLE_CLIENT_ID'),
     googleClientSecret: getEnv('GOOGLE_CLIENT_SECRET'),
     jwtSecret: getEnv('JWT_SECRET'),
-    refreshTokenName: getEnv('ACCESS_TOKEN_NAME'),
-    accessTokenName: getEnv('REFRESH_TOKEN_NAME'),
+    accessTokenName: getEnv('ACCESS_TOKEN_NAME'),
+    refreshTokenName: getEnv('REFRESH_TOKEN_NAME'),
 } as ExnessEnv;
