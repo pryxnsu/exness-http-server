@@ -8,6 +8,7 @@ import { authRouter } from './modules/auth/auth.route';
 import { HTTPException } from 'hono/http-exception';
 import { env } from './env';
 import { connectDb } from './lib/db';
+import { instrumentsRouter } from './modules/instruments/instruments.route';
 
 const app = new Hono();
 
@@ -35,6 +36,7 @@ app.get('/health', (c: Context) => {
 
 // routes
 app.route('/auth', authRouter);
+app.route('/api/instruments', instrumentsRouter);
 
 // exception handler
 app.onError((err, c) => {
