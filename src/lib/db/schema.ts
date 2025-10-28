@@ -118,7 +118,7 @@ export const favoriteInstrument = pgTable(
             .primaryKey()
             .$defaultFn(() => uuid()),
         symbol: text('symbol'),
-        exchange: text('exchange'),
+        type: text('type'),
         sortOrder: integer('sort_order'),
         userId: text('user_id')
             .notNull()

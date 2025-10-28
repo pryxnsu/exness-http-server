@@ -36,6 +36,13 @@
       "when": 1761566096952,
       "tag": "0004_powerful_strong_guy",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1761633722185,
+      "tag": "0005_sour_scrambler",
+      "breakpoints": true
     }
   ]
 }
