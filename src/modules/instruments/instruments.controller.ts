@@ -6,7 +6,7 @@ import {
 } from '../../lib/db/queries/instrument.queries';
 import { HTTP_RESPONSE_CODE } from '../../constant';
 import { FavoriteInstrument, User } from '../../lib/db/schema';
-import { fetchPriceOfSymbol } from './instruments.service';
+import { fetchPriceOfSymbol, fetchInstrumentCandles } from './instruments.service';
 import { candlesDummyData, favoritesDummyData } from '../../data';
 import { env } from '../../env';
 
@@ -72,4 +72,48 @@ export const favoriteInstrumentsPrices = async (c: Context) => {
     );
 
     return c.json({ success: true, message: 'Instruments prices', data: prices });
+};
+
+// chart price data of main instrument
+export const priceHistory = async (c: Context) => {
+    const { symbol, type } = c.req.param();
+
+    // time_frame in minutes
+    // from in ms
+    const { time_frame, from, count } = c.req.query();
+
+    // sending dummy data in dev mode
+    if (env.nodeEnv === 'development') {
+        return c.json({
+            success: true,
+            priceHistory: candlesDummyData.map(price => ({
+                time: Number(price.time),
+                open: Number(price.open),
+                high: Number(price.high),
+                low: Number(price.low),
+                close: Number(price.close),
+                volume: Number(price.volume),
+            })),
+        });
+    }
+
+    const data = await fetchInstrumentCandles({
+        symbol,
+        type,
+        timeFrame: time_frame,
+        from,
+        count,
+    });
+
+    return c.json({
+        success: true,
+        priceHistory: data?.map(price => ({
+            time: Number(price.time),
+            open: Number(price.open),
+            high: Number(price.high),
+            low: Number(price.low),
+            close: Number(price.close),
+            volume: Number(price.volume),
+        })),
+    });
 };

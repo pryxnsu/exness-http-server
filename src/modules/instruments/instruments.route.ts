@@ -3,6 +3,7 @@ import {
     addInstrument,
     favoriteInstrument,
     favoriteInstrumentsPrices,
+    priceHistory,
     removeInstrumentFromFavorite,
 } from './instruments.controller';
 import { auth } from '../../middlewares/auth.middleware';
@@ -17,5 +18,7 @@ instrumentsRouter.post('/', auth, zValidator('json', AddFavoriteInstrumentSchema
 instrumentsRouter.get('/', auth, favoriteInstrument);
 // favorites instruments
 instrumentsRouter.get('/favorites', auth, favoriteInstrumentsPrices);
+// fetch candles of instrument
+instrumentsRouter.get('/:symbol/:type/candles', auth, priceHistory);
 // remove instrument from favorite
 instrumentsRouter.delete('/:id', auth, removeInstrumentFromFavorite);

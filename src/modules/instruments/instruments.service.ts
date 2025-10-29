@@ -1,3 +1,5 @@
+import { env } from '../../env';
+
 async function fetchData(url: string) {
     try {
         const response = await fetch(url);
@@ -38,7 +40,7 @@ export async function fetchPriceOfSymbol(symbol: string, type: string) {
 
     if (type === 'forex') {
         const parsedData = await fetchData(
-            `https://api.twelvedata.com/quote?symbol=${symbol}&apikey=5a0b6d1a791b473f8a35715ee73c56be`
+            `https://api.twelvedata.com/quote?symbol=${symbol}&apikey=${env.twelveDataApiKey}`
         );
 
         const signal = parseFloat(parsedData.change) < 0 ? 'down' : 'up';
@@ -56,7 +58,7 @@ export async function fetchPriceOfSymbol(symbol: string, type: string) {
         };
     } else if (type === 'stock') {
         const parsedData = await fetchData(
-            `https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${symbol}&apikey=YMFE1B2C3319DD54`
+            `https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${symbol}&apikey=${env.alphaVantageApiKey}`
         );
         const quoteData = parsedData['Global Quote'];
 
@@ -74,6 +76,71 @@ export async function fetchPriceOfSymbol(symbol: string, type: string) {
             ask,
             change: changePercent,
         };
+    }
+    return data;
+}
+
+/**
+ * @returns candles data of instrument
+ */
+export async function fetchInstrumentCandles({
+    symbol,
+    type,
+    timeFrame,
+    from,
+    count,
+}: {
+    symbol: string;
+    type: string;
+    timeFrame: string;
+    from: string;
+    count: string;
+}) {
+    const interval = timeFrame; // in minutes
+    const startTime = from ? new Date(from).getTime() : undefined;
+    const candleCount = count || 300;
+
+    let data = undefined;
+    type = type.toLowerCase();
+
+    if (type == 'forex') {
+        let url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}m&limit=${candleCount}`;
+        if (startTime) url += `&startTime=${startTime}`;
+        const parsedData = await fetchData(url);
+
+        if (!Array.isArray(parsedData)) {
+            return null;
+        }
+
+        data = parsedData
+            .map((c: any) => ({
+                time: c[0],
+                open: c[1],
+                high: c[2],
+                low: c[3],
+                close: c[4],
+                volume: c[5],
+            }))
+            .reverse();
+    } else if (type == 'stock') {
+        const url = `https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol=${symbol}&interval=${interval}min&apikey=${env.alphaVantageApiKey}`;
+        let parsedData = await fetchData(url);
+
+        parsedData = parsedData['Time Series (5min)'];
+
+        data = Object.entries(parsedData).map(([k, v]: [string, any]) => {
+            const date = new Date(k);
+            const currDate = date.getTime();
+
+            return {
+                time: currDate,
+                open: v['1. open'],
+                high: v['2. high'],
+                low: v['3. low'],
+                close: v['4. close'],
+                volume: v['5. volume'],
+            };
+        });
     }
     return data;
 }

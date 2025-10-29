@@ -13,6 +13,8 @@ export type ExnessEnv = {
     jwtSecret: string;
     accessTokenName: string;
     refreshTokenName: string;
+    alphaVantageApiKey: string;
+    twelveDataApiKey: string;
 };
 
 export function getEnv(key: string): string {
@@ -35,4 +37,6 @@ export const env = {
     jwtSecret: getEnv('JWT_SECRET'),
     accessTokenName: getEnv('ACCESS_TOKEN_NAME'),
     refreshTokenName: getEnv('REFRESH_TOKEN_NAME'),
+    alphaVantageApiKey: getEnv('ALPHA_VANTAGE_API_KEY'),
+    twelveDataApiKey: getEnv('TWELVE_DATA_API_KEY'),
 } as ExnessEnv;
