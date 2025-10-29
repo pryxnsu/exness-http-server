@@ -5,6 +5,10 @@ import {
     getFavoriteInstrumentsByUserId,
 } from '../../lib/db/queries/instrument.queries';
 import { HTTP_RESPONSE_CODE } from '../../constant';
+import { FavoriteInstrument, User } from '../../lib/db/schema';
+import { fetchPriceOfSymbol } from './instruments.service';
+import { candlesDummyData, favoritesDummyData } from '../../data';
+import { env } from '../../env';
 
 export const addInstrument = async (c: Context) => {
     // @ts-ignore
@@ -40,4 +44,32 @@ export const removeInstrumentFromFavorite = async (c: Context) => {
         { success: true, message: 'Instruments removed successfully', data: instrumentsId },
         HTTP_RESPONSE_CODE.SUCCESS
     );
+};
+
+export const favoriteInstrumentsPrices = async (c: Context) => {
+    const user = c.get('user') as User;
+
+    const favoriteInstruments: FavoriteInstrument[] = await getFavoriteInstrumentsByUserId(user.id);
+
+    if (!favoriteInstruments || favoriteInstrument.length === 0) {
+        return c.json({ data: [] });
+    }
+
+    // sending dummy data in dev mode
+    if (env.nodeEnv !== 'development') {
+        return c.json({ success: true, message: 'Instruments prices', data: favoritesDummyData });
+    }
+
+    const symbols = favoriteInstruments.map(favIns => {
+        return {
+            symbol: favIns.symbol,
+            type: favIns.type,
+        };
+    });
+
+    const prices = await Promise.all(
+        symbols.map(data => fetchPriceOfSymbol(data.symbol as string, data.type as string))
+    );
+
+    return c.json({ success: true, message: 'Instruments prices', data: prices });
 };
