@@ -4,7 +4,6 @@ import { db } from '../index';
 import { HTTP_RESPONSE_CODE } from '../../../constant';
 import { HTTPException } from 'hono/http-exception';
 import { and } from 'drizzle-orm/sql/expressions/conditions';
-import { DrizzleError } from 'drizzle-orm';
 
 export async function createFavoriteInstrument(
     userId: string,
@@ -32,14 +31,13 @@ export async function createFavoriteInstrument(
 
 export async function getFavoriteInstrumentsByUserId(
     userId: string
-): Promise<FavoriteInstrument | null> {
+): Promise<FavoriteInstrument[]> {
     try {
-        const [i] = await db
+        return await db
             .select()
             .from(favoriteInstrument)
             .where(eq(favoriteInstrument.userId, userId))
             .$withCache();
-        return i || null;
     } catch (err: unknown) {
         console.error('[DB error] Failed to fetch favorite instruments:', err);
         throw new HTTPException(HTTP_RESPONSE_CODE.SERVER_ERROR, {
