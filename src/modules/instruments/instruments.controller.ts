@@ -56,7 +56,7 @@ export const favoriteInstrumentsPrices = async (c: Context) => {
     }
 
     // sending dummy data in dev mode
-    if (env.nodeEnv !== 'development') {
+    if (env.nodeEnv === 'development') {
         return c.json({ success: true, message: 'Instruments prices', data: favoritesDummyData });
     }
 
