@@ -10,6 +10,7 @@ import { env } from './env';
 import { connectDb } from './lib/db';
 import { instrumentsRouter } from './modules/instruments/instruments.route';
 import { walletRouter } from './modules/wallet/wallet.route';
+import { userRouter } from './modules/user/user.route';
 
 const app = new Hono();
 
@@ -37,6 +38,7 @@ app.get('/health', (c: Context) => {
 
 // routes
 app.route('/auth', authRouter);
+app.route('/api/user', userRouter);
 app.route('/api/instruments', instrumentsRouter);
 app.route('/api/wallet', walletRouter);
 
