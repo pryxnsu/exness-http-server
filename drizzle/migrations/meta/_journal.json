@@ -71,6 +71,13 @@
       "when": 1762370793022,
       "tag": "0009_nervous_norrin_radd",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1762371531042,
+      "tag": "0010_cute_bullseye",
+      "breakpoints": true
     }
   ]
 }

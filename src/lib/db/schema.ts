@@ -101,6 +101,7 @@ export const wallet = pgTable(
         margin: numeric('margin', { precision: 14, scale: 2, mode: 'number' }).default(0.0),
         freeMargin: numeric('free_margin', { precision: 14, scale: 2, mode: 'number' }).default(0.0),
         currency: text('currency').notNull().default('USD'),
+        leverage: integer('leverage').notNull().default(200),
         userId: text('user_id')
             .notNull()
             .references(() => user.id, { onDelete: 'cascade' }),

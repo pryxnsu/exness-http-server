@@ -1,0 +1,1 @@
+ALTER TABLE "wallet" ADD COLUMN "leverage" integer DEFAULT 200 NOT NULL;
