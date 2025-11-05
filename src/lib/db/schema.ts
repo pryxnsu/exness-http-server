@@ -11,6 +11,7 @@ import {
     bigint,
 } from 'drizzle-orm/pg-core';
 import { v4 as uuid } from 'uuid';
+import { number } from 'zod';
 
 export const user = pgTable('user', {
     id: text('id')
@@ -95,10 +96,10 @@ export const wallet = pgTable(
         type: varchar('type', { enum: ['real', 'demo'] })
             .notNull()
             .default('demo'),
-        balance: numeric('balance', { precision: 14, scale: 2 }).default('0.00'),
-        equity: numeric('equity', { precision: 14, scale: 2 }).default('0.00'),
-        margin: numeric('margin', { precision: 14, scale: 2 }).default('0.00'),
-        freeMargin: numeric('free_margin', { precision: 14, scale: 2 }).default('0.00'),
+        balance: numeric('balance', { precision: 14, scale: 2, mode: 'number' }).default(0.0),
+        equity: numeric('equity', { precision: 14, scale: 2, mode: 'number' }).default(0.0),
+        margin: numeric('margin', { precision: 14, scale: 2, mode: 'number' }).default(0.0),
+        freeMargin: numeric('free_margin', { precision: 14, scale: 2, mode: 'number' }).default(0.0),
         currency: text('currency').notNull().default('USD'),
         userId: text('user_id')
             .notNull()
@@ -139,13 +140,17 @@ export const order = pgTable(
             .references(() => user.id, { onDelete: 'cascade' }),
         instrument: text('instrument').notNull(),
         side: varchar('side', { enum: ['buy', 'sell'] }).notNull(),
-        volume: numeric('volume', { precision: 14, scale: 2 }).notNull(),
+        volume: numeric('volume', { precision: 14, scale: 2, mode: 'number' }).notNull(),
         orderKind: varchar('order_kind', { enum: ['market', 'pending'] })
             .default('market')
             .notNull()
             .default('market'),
-        requestedPrice: numeric('requested_price', { precision: 14, scale: 2 }).notNull(),
-        executedPrice: numeric('executed_price', { precision: 14, scale: 2 }),
+        requestedPrice: numeric('requested_price', {
+            precision: 14,
+            scale: 2,
+            mode: 'number',
+        }).notNull(),
+        executedPrice: numeric('executed_price', { precision: 14, scale: 2, mode: 'number' }),
         oneClick: boolean('one_click').notNull().default(false),
         requestedAt: timestamp('requested_at').notNull().defaultNow(),
         executedAt: timestamp('executed_at'),
@@ -170,15 +175,15 @@ export const position = pgTable(
 
         instrument: text('instrument').notNull(),
         side: varchar('side', { enum: ['buy', 'sell'] }).notNull(),
-        volume: numeric('volume', { precision: 14, scale: 2 }).notNull(),
-        openPrice: numeric('open_price', { precision: 14, scale: 5 }).notNull(),
-        closePrice: numeric('close_price', { precision: 14, scale: 5 }),
-        sl: numeric('sl', { precision: 14, scale: 5 }),
-        tk: numeric('tk', { precision: 14, scale: 5 }),
+        volume: numeric('volume', { precision: 14, scale: 2, mode: 'number' }).notNull(),
+        openPrice: numeric('open_price', { precision: 14, scale: 5, mode: 'number' }).notNull(),
+        closePrice: numeric('close_price', { precision: 14, scale: 5, mode: 'number' }),
+        sl: numeric('sl', { precision: 14, scale: 5, mode: 'number' }),
+        tk: numeric('tk', { precision: 14, scale: 5, mode: 'number' }),
         status: varchar('status', { enum: ['open', 'closed'] }).default('open'),
         openedAt: timestamp('opened_at').notNull().defaultNow(),
         closedAt: timestamp('closed_at'),
-        pnl: numeric('pnl', { precision: 14, scale: 2 }),
+        pnl: numeric('pnl', { precision: 14, scale: 2, mode: 'number' }),
     },
     t => [
         index('position_user_id_idx').on(t.userId),

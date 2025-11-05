@@ -1,0 +1,1 @@
+ALTER TABLE "wallet" ALTER COLUMN "free_margin" SET DEFAULT 0;
