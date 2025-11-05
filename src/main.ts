@@ -11,6 +11,7 @@ import { connectDb } from './lib/db';
 import { instrumentsRouter } from './modules/instruments/instruments.route';
 import { walletRouter } from './modules/wallet/wallet.route';
 import { userRouter } from './modules/user/user.route';
+import { connectRedis } from './services/redis';
 
 const app = new Hono();
 
@@ -70,9 +71,11 @@ app.onError((err, c) => {
     );
 });
 
-// connect db -> start server
-connectDb()
-    .then(() => {
+// connect db -> connect redis -> start server
+(async () => {
+    try {
+        await connectDb();
+        await connectRedis();
         serve(
             {
                 fetch: app.fetch,
@@ -82,8 +85,8 @@ connectDb()
                 console.log(`Server is running on http://localhost:${info.port}`);
             }
         );
-    })
-    .catch((err: unknown) => {
-        console.error('Database Connection failed', err);
+    } catch (err: unknown) {
+        console.error('Connection failed:', err);
         process.exit(1);
-    });
+    }
+})();

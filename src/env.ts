@@ -15,6 +15,7 @@ export type ExnessEnv = {
     refreshTokenName: string;
     alphaVantageApiKey: string;
     twelveDataApiKey: string;
+    redisUrl: string;
 };
 
 export function getEnv(key: string): string {
@@ -39,4 +40,5 @@ export const env = {
     refreshTokenName: getEnv('REFRESH_TOKEN_NAME'),
     alphaVantageApiKey: getEnv('ALPHA_VANTAGE_API_KEY'),
     twelveDataApiKey: getEnv('TWELVE_DATA_API_KEY'),
+    redisUrl: getEnv('REDIS_URL')
 } as ExnessEnv;
