@@ -138,7 +138,7 @@ export const order = pgTable(
             .notNull()
             .references(() => user.id, { onDelete: 'cascade' }),
         instrument: text('instrument').notNull(),
-        side: varchar('type', { enum: ['buy', 'sell'] }).notNull(),
+        side: varchar('side', { enum: ['buy', 'sell'] }).notNull(),
         volume: numeric('volume', { precision: 14, scale: 2 }).notNull(),
         orderKind: varchar('order_kind', { enum: ['market', 'pending'] })
             .default('market')
@@ -158,9 +158,39 @@ export const order = pgTable(
     t => [index('order_user_id_idx').on(t.userId)]
 );
 
+export const position = pgTable(
+    'position',
+    {
+        id: text('id')
+            .primaryKey()
+            .$defaultFn(() => uuid()),
+        userId: text('user_id')
+            .notNull()
+            .references(() => user.id, { onDelete: 'cascade' }),
+
+        instrument: text('instrument').notNull(),
+        side: varchar('side', { enum: ['buy', 'sell'] }).notNull(),
+        volume: numeric('volume', { precision: 14, scale: 2 }).notNull(),
+        openPrice: numeric('open_price', { precision: 14, scale: 5 }).notNull(),
+        closePrice: numeric('close_price', { precision: 14, scale: 5 }),
+        sl: numeric('sl', { precision: 14, scale: 5 }),
+        tk: numeric('tk', { precision: 14, scale: 5 }),
+        status: varchar('status', { enum: ['open', 'closed'] }).default('open'),
+        openedAt: timestamp('opened_at').notNull().defaultNow(),
+        closedAt: timestamp('closed_at'),
+        pnl: numeric('pnl', { precision: 14, scale: 2 }),
+    },
+    t => [
+        index('position_user_id_idx').on(t.userId),
+        index('position_instrument_idx').on(t.instrument),
+        index('position_user_side_idx').on(t.userId, t.side),
+    ]
+);
+
 export type User = InferSelectModel<typeof user>;
 export type Session = InferSelectModel<typeof session>;
 export type Account = InferSelectModel<typeof account>;
 export type Wallet = InferSelectModel<typeof wallet>;
 export type FavoriteInstrument = InferSelectModel<typeof favoriteInstrument>;
 export type Order = InferSelectModel<typeof order>;
+export type Position = InferSelectModel<typeof position>;
