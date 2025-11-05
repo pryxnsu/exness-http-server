@@ -8,6 +8,7 @@ import {
     varchar,
     numeric,
     integer,
+    bigint,
 } from 'drizzle-orm/pg-core';
 import { v4 as uuid } from 'uuid';
 
@@ -127,8 +128,39 @@ export const favoriteInstrument = pgTable(
     t => [index('favorite_instruments_user_id_idx').on(t.userId)]
 );
 
+export const order = pgTable(
+    'order',
+    {
+        id: text('id')
+            .primaryKey()
+            .$defaultFn(() => uuid()),
+        userId: text('user_id')
+            .notNull()
+            .references(() => user.id, { onDelete: 'cascade' }),
+        instrument: text('instrument').notNull(),
+        side: varchar('type', { enum: ['buy', 'sell'] }).notNull(),
+        volume: numeric('volume', { precision: 14, scale: 2 }).notNull(),
+        orderKind: varchar('order_kind', { enum: ['market', 'pending'] })
+            .default('market')
+            .notNull()
+            .default('market'),
+        requestedPrice: numeric('requested_price', { precision: 14, scale: 2 }).notNull(),
+        executedPrice: numeric('executed_price', { precision: 14, scale: 2 }),
+        oneClick: boolean('one_click').notNull().default(false),
+        requestedAt: timestamp('requested_at').notNull().defaultNow(),
+        executedAt: timestamp('executed_at'),
+        status: varchar('status', { enum: ['pending', 'filled', 'canceled'] })
+            .notNull()
+            .default('pending'),
+        positionId: text('position_id'),
+        createdAt: timestamp('created_at').notNull().defaultNow(),
+    },
+    t => [index('order_user_id_idx').on(t.userId)]
+);
+
 export type User = InferSelectModel<typeof user>;
 export type Session = InferSelectModel<typeof session>;
 export type Account = InferSelectModel<typeof account>;
 export type Wallet = InferSelectModel<typeof wallet>;
 export type FavoriteInstrument = InferSelectModel<typeof favoriteInstrument>;
+export type Order = InferSelectModel<typeof order>;

@@ -43,6 +43,13 @@
       "when": 1761633722185,
       "tag": "0005_sour_scrambler",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1762351666690,
+      "tag": "0006_steady_shiver_man",
+      "breakpoints": true
     }
   ]
 }
