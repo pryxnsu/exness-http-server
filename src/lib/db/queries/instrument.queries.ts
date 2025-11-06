@@ -1,13 +1,35 @@
 import { eq } from 'drizzle-orm';
-import { favoriteInstrument, FavoriteInstrument } from '../schema';
+import { favoriteInstrument, FavoriteInstrument, Instrument, instrument } from '../schema';
 import { db } from '../index';
 import { HTTP_RESPONSE_CODE } from '../../../constant';
 import { HTTPException } from 'hono/http-exception';
 import { and } from 'drizzle-orm/sql/expressions/conditions';
 
+export async function createNewInstrument(
+    symbol: string,
+    type: 'forex' | 'crypto' | 'stock'
+): Promise<Instrument> {
+    try {
+        const [ni] = await db
+            .insert(instrument)
+            .values({
+                symbol,
+                type,
+            })
+            .returning();
+
+        return ni;
+    } catch (err: unknown) {
+        console.error('[DB error] Failed to create new Instrument:', err);
+        throw new HTTPException(HTTP_RESPONSE_CODE.SERVER_ERROR, {
+            message: 'Failed to create new Instrument',
+        });
+    }
+}
+
 export async function createFavoriteInstrument(
     userId: string,
-    symbol: string,
+    instrumentId: string,
     sortOrder: number
 ): Promise<FavoriteInstrument> {
     try {
@@ -15,7 +37,7 @@ export async function createFavoriteInstrument(
             .insert(favoriteInstrument)
             .values({
                 userId,
-                symbol,
+                instrumentId,
                 sortOrder,
             })
             .returning();
@@ -29,14 +51,20 @@ export async function createFavoriteInstrument(
     }
 }
 
-export async function getFavoriteInstrumentsByUserId(
-    userId: string
-): Promise<FavoriteInstrument[]> {
+export async function getFavoriteInstrumentsByUserId(userId: string) {
     try {
         return await db
-            .select()
+            .select({
+                id: favoriteInstrument.id,
+                sortOrder: favoriteInstrument.sortOrder,
+                instrumentId: instrument.id,
+                symbol: instrument.symbol,
+                type: instrument.type,
+            })
             .from(favoriteInstrument)
+            .leftJoin(instrument, eq(favoriteInstrument.instrumentId, instrument.id))
             .where(eq(favoriteInstrument.userId, userId))
+            .orderBy(favoriteInstrument.sortOrder)
             .$withCache();
     } catch (err: unknown) {
         console.error('[DB error] Failed to fetch favorite instruments:', err);

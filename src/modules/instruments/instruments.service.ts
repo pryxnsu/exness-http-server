@@ -38,7 +38,7 @@ export async function fetchPriceOfSymbol(symbol: string, type: string) {
             spreadPercent = 0.02;
     }
 
-    if (type === 'forex') {
+    if (type === 'forex' || type === 'crypto') {
         const parsedData = await fetchData(
             `https://api.twelvedata.com/quote?symbol=${symbol}&apikey=${env.twelveDataApiKey}`
         );
@@ -103,7 +103,7 @@ export async function fetchInstrumentCandles({
     let data = undefined;
     type = type.toLowerCase();
 
-    if (type == 'forex') {
+    if (type == 'forex' || type == 'crypto') {
         let url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}m&limit=${candleCount}`;
         if (startTime) url += `&startTime=${startTime}`;
         const parsedData = await fetchData(url);

@@ -1,21 +1,24 @@
 import { Hono } from 'hono';
 import {
-    addInstrument,
-    favoriteInstrument,
+    addInstrumentToFavorites,
+    addNewInstrument,
+    fetchFavoriteInstruments,
     favoriteInstrumentsPrices,
     priceHistory,
     removeInstrumentFromFavorite,
 } from './instruments.controller';
 import { auth } from '../../middlewares/auth.middleware';
 import { zValidator } from '@hono/zod-validator';
-import { AddFavoriteInstrumentSchema } from './instruments.types';
+import { AddFavoriteInstrumentSchema, AddNewInstrumentSchema } from './instruments.types';
 
 export const instrumentsRouter = new Hono();
 
+// add new instrument
+instrumentsRouter.post('/', zValidator('json', AddNewInstrumentSchema), addNewInstrument);
 // add new instrument to favorites
-instrumentsRouter.post('/', auth, zValidator('json', AddFavoriteInstrumentSchema), addInstrument);
+instrumentsRouter.post('/favorites', auth, zValidator('json', AddFavoriteInstrumentSchema), addInstrumentToFavorites);
 // all favorites instruments
-instrumentsRouter.get('/', auth, favoriteInstrument);
+instrumentsRouter.get('/', auth, fetchFavoriteInstruments);
 // favorites instruments
 instrumentsRouter.get('/favorites', auth, favoriteInstrumentsPrices);
 // fetch candles of instrument

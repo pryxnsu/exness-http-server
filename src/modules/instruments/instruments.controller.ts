@@ -1,22 +1,35 @@
 import { Context } from 'hono';
 import {
     createFavoriteInstrument,
+    createNewInstrument,
     destroyInstrument,
     getFavoriteInstrumentsByUserId,
 } from '../../lib/db/queries/instrument.queries';
 import { HTTP_RESPONSE_CODE } from '../../constant';
-import { FavoriteInstrument, User } from '../../lib/db/schema';
+import { User } from '../../lib/db/schema';
 import { fetchPriceOfSymbol, fetchInstrumentCandles } from './instruments.service';
 import { candlesDummyData, favoritesDummyData } from '../../data';
 import { env } from '../../env';
 
-export const addInstrument = async (c: Context) => {
+export const addNewInstrument = async (c: Context) => {
+    // @ts-ignore
+    const body = c.req.valid('json');
+
+    const instrument = await createNewInstrument(body['symbol'], body['type']);
+
+    return c.json(
+        { success: true, message: 'Instrument added successfully', data: instrument },
+        HTTP_RESPONSE_CODE.SUCCESS
+    );
+};
+
+export const addInstrumentToFavorites = async (c: Context) => {
     // @ts-ignore
     const body = c.req.valid('json');
     const user = c.get('user');
     const instrument = await createFavoriteInstrument(
         user?.id as string,
-        body['symbol'],
+        body['instrumentId'],
         body['sortOrder']
     );
 
@@ -26,8 +39,8 @@ export const addInstrument = async (c: Context) => {
     );
 };
 
-export const favoriteInstrument = (c: Context) => {
-    const user = c.get('user');
+export const fetchFavoriteInstruments = (c: Context) => {
+    const user = c.get('user') as User;
     const instruments = getFavoriteInstrumentsByUserId(user?.id as string);
 
     return c.json(
@@ -49,9 +62,9 @@ export const removeInstrumentFromFavorite = async (c: Context) => {
 export const favoriteInstrumentsPrices = async (c: Context) => {
     const user = c.get('user') as User;
 
-    const favoriteInstruments: FavoriteInstrument[] = await getFavoriteInstrumentsByUserId(user.id);
+    const favoriteInstruments = await getFavoriteInstrumentsByUserId(user.id);
 
-    if (!favoriteInstruments || favoriteInstrument.length === 0) {
+    if (!favoriteInstruments || favoriteInstruments.length === 0) {
         return c.json({ data: [] });
     }
 
@@ -60,18 +73,32 @@ export const favoriteInstrumentsPrices = async (c: Context) => {
         return c.json({ success: true, message: 'Instruments prices', data: favoritesDummyData });
     }
 
-    const symbols = favoriteInstruments.map(favIns => {
-        return {
-            symbol: favIns.symbol,
-            type: favIns.type,
-        };
-    });
+    // for fast lookup
+    const favoritesMap = new Map(favoriteInstruments.map(fav => [fav.symbol, fav]));
 
     const prices = await Promise.all(
-        symbols.map(data => fetchPriceOfSymbol(data.symbol as string, data.type as string))
+        favoriteInstruments.map(f => fetchPriceOfSymbol(f.symbol as string, f.type as string))
     );
 
-    return c.json({ success: true, message: 'Instruments prices', data: prices });
+    const responseData = prices.reduce((acc, p) => {
+        if (!p?.symbol) return acc;
+
+        const fav = favoritesMap.get(p.symbol);
+        if (!fav) return acc;
+
+        acc.push({
+            id: fav.id,
+            sortOrder: fav.sortOrder,
+            signal: p?.signal,
+            symbol: p?.symbol,
+            bid: Number(p?.bid),
+            ask: Number(p?.ask),
+            change: Number(p?.change),
+        });
+        return acc;
+    }, [] as any[]);
+
+    return c.json({ success: true, message: 'Instruments prices', data: responseData });
 };
 
 // chart price data of main instrument
