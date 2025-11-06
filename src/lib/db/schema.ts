@@ -202,7 +202,7 @@ export const position = pgTable(
         openPrice: numeric('open_price', { precision: 14, scale: 5, mode: 'number' }).notNull(),
         closePrice: numeric('close_price', { precision: 14, scale: 5, mode: 'number' }),
         sl: numeric('sl', { precision: 14, scale: 5, mode: 'number' }),
-        tk: numeric('tk', { precision: 14, scale: 5, mode: 'number' }),
+        tp: numeric('tp', { precision: 14, scale: 5, mode: 'number' }),
         status: varchar('status', { enum: ['open', 'closed'] }).default('open'),
         openedAt: timestamp('opened_at').notNull().defaultNow(),
         closedAt: timestamp('closed_at'),
