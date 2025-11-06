@@ -9,6 +9,7 @@ import {
     numeric,
     integer,
     bigint,
+    unique,
 } from 'drizzle-orm/pg-core';
 import { v4 as uuid } from 'uuid';
 import { number } from 'zod';
@@ -99,7 +100,9 @@ export const wallet = pgTable(
         balance: numeric('balance', { precision: 14, scale: 2, mode: 'number' }).default(0.0),
         equity: numeric('equity', { precision: 14, scale: 2, mode: 'number' }).default(0.0),
         margin: numeric('margin', { precision: 14, scale: 2, mode: 'number' }).default(0.0),
-        freeMargin: numeric('free_margin', { precision: 14, scale: 2, mode: 'number' }).default(0.0),
+        freeMargin: numeric('free_margin', { precision: 14, scale: 2, mode: 'number' }).default(
+            0.0
+        ),
         currency: text('currency').notNull().default('USD'),
         leverage: integer('leverage').notNull().default(200),
         userId: text('user_id')
@@ -114,20 +117,39 @@ export const wallet = pgTable(
     t => [index('wallet_user_id_idx').on(t.userId)]
 );
 
+export const instrument = pgTable('instrument', {
+    id: text('id')
+        .primaryKey()
+        .$defaultFn(() => uuid()),
+    symbol: text('symbol').notNull().unique(),
+    type: varchar('type', { enum: ['forex', 'crypto', 'stock'] }).notNull(),
+    isActive: boolean('is_active').default(true),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at')
+        .notNull()
+        .defaultNow()
+        .$onUpdate(() => new Date()),
+});
+
 export const favoriteInstrument = pgTable(
     'favorite_instrument',
     {
         id: text('id')
             .primaryKey()
             .$defaultFn(() => uuid()),
-        symbol: text('symbol'),
-        type: text('type'),
+        instrumentId: text('instrument_id')
+            .notNull()
+            .references(() => instrument.id, { onDelete: 'cascade' }),
         sortOrder: integer('sort_order'),
+        createdAt: timestamp('created_at').notNull().defaultNow(),
         userId: text('user_id')
             .notNull()
             .references(() => user.id, { onDelete: 'cascade' }),
     },
-    t => [index('favorite_instruments_user_id_idx').on(t.userId)]
+    t => [
+        index('favorite_instruments_user_id_idx').on(t.userId),
+        unique('unique_user_instrument').on(t.userId, t.instrumentId),
+    ]
 );
 
 export const order = pgTable(
@@ -197,6 +219,7 @@ export type User = InferSelectModel<typeof user>;
 export type Session = InferSelectModel<typeof session>;
 export type Account = InferSelectModel<typeof account>;
 export type Wallet = InferSelectModel<typeof wallet>;
+export type Instrument = InferSelectModel<typeof instrument>;
 export type FavoriteInstrument = InferSelectModel<typeof favoriteInstrument>;
 export type Order = InferSelectModel<typeof order>;
 export type Position = InferSelectModel<typeof position>;

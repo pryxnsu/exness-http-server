@@ -78,6 +78,13 @@
       "when": 1762371531042,
       "tag": "0010_cute_bullseye",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1762412356240,
+      "tag": "0011_tearful_rawhide_kid",
+      "breakpoints": true
     }
   ]
 }
