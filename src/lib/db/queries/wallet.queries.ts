@@ -19,6 +19,20 @@ export async function createWallet(userId: string, data: CreateWalletType): Prom
     }
 }
 
+export async function getWalletByWalletId(walletId: string, userId: string) {
+    try {
+        const [w] = await db
+            .select()
+            .from(wallet)
+            .where(and(eq(wallet.id, walletId), eq(wallet.userId, userId)))
+            .$withCache();
+        return w || null;
+    } catch (err: unknown) {
+        console.error('[DB error] Failed to get wallet by wallet id:', err);
+        throw err;
+    }
+}
+
 export async function getWallet(
     userId: string,
     walletType: 'real' | 'demo'
