@@ -12,6 +12,7 @@ import { instrumentsRouter } from './modules/instruments/instruments.route';
 import { walletRouter } from './modules/wallet/wallet.route';
 import { userRouter } from './modules/user/user.route';
 import { connectRedis } from './services/redis';
+import { accountRouter } from './modules/accounts/account.route';
 
 const app = new Hono();
 
@@ -42,6 +43,7 @@ app.route('/auth', authRouter);
 app.route('/api/user', userRouter);
 app.route('/api/instruments', instrumentsRouter);
 app.route('/api/wallet', walletRouter);
+app.route('/api/accounts', accountRouter);
 
 // exception handler
 app.onError((err, c) => {
