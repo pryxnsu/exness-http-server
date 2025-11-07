@@ -215,6 +215,38 @@ export const position = pgTable(
     ]
 );
 
+export const deal = pgTable(
+    'deal',
+    {
+        id: text('id')
+            .primaryKey()
+            .$defaultFn(() => uuid()),
+        orderId: text('order_id').notNull(),
+        positionId: text('position_id').notNull(),
+        type: integer('type').notNull(), // 0, 1 , 2 ...
+        direction: integer('direction').notNull(),
+        price: numeric('price', { precision: 14, scale: 5, mode: 'number' }).notNull(),
+        time: timestamp('time').notNull(),
+        volume: numeric('volume', { precision: 14, scale: 5, mode: 'number' }).notNull(),
+        volumeClosed: numeric('volume_closed', {
+            precision: 14,
+            scale: 5,
+            mode: 'number',
+        }).default(0.0),
+        instrument: text('instrument').notNull(),
+        profit: numeric('profit', { precision: 14, scale: 2, mode: 'number' })
+            .default(0.0)
+            .notNull(),
+        sl: numeric('sl', { precision: 14, scale: 5, mode: 'number' }),
+        tp: numeric('tp', { precision: 14, scale: 5, mode: 'number' }),
+        commission: numeric('commission', { precision: 14, scale: 5, mode: 'number' }).default(0.0),
+        fee: numeric('fee', { precision: 14, scale: 5, mode: 'number' }).default(0.0),
+        swap: numeric('swap', { precision: 14, scale: 5, mode: 'number' }).default(0.0),
+        reason: integer('reason').default(2).notNull(),
+    },
+    t => [index('deal_order_id_idx').on(t.orderId), index('deal_position_id_idx').on(t.positionId)]
+);
+
 export type User = InferSelectModel<typeof user>;
 export type Session = InferSelectModel<typeof session>;
 export type Account = InferSelectModel<typeof account>;
@@ -223,3 +255,4 @@ export type Instrument = InferSelectModel<typeof instrument>;
 export type FavoriteInstrument = InferSelectModel<typeof favoriteInstrument>;
 export type Order = InferSelectModel<typeof order>;
 export type Position = InferSelectModel<typeof position>;
+export type Deal = InferSelectModel<typeof deal>;
