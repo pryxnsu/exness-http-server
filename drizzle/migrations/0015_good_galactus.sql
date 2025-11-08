@@ -1,0 +1,1 @@
+ALTER TABLE "position" ADD COLUMN "required_margin" numeric(14, 2) NOT NULL;

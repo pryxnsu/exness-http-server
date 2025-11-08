@@ -46,7 +46,7 @@ export const executeOrder = async (c: Context) => {
     }
 
     // current price of instrument
-    const tick = (await getCurrentMarketPrice(instrument));
+    const tick = await getCurrentMarketPrice(instrument);
 
     if (!tick || Number.isNaN(tick.ask) || Number.isNaN(tick.bid)) {
         throw new HTTPException(HTTP_RESPONSE_CODE.SERVICE_UNAVAILABLE, {
@@ -121,6 +121,7 @@ export const executeOrder = async (c: Context) => {
                 userId: user.id,
                 instrument,
                 side,
+                requiredMargin,
                 volume,
                 openPrice: executedPrice,
                 sl,
@@ -144,7 +145,7 @@ export const executeOrder = async (c: Context) => {
                 profit: 0,
                 sl,
                 tp,
-                reason: 2
+                reason: 2,
             })
             .returning();
 

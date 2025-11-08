@@ -198,6 +198,11 @@ export const position = pgTable(
 
         instrument: text('instrument').notNull(),
         side: varchar('side', { enum: ['buy', 'sell'] }).notNull(),
+        requiredMargin: numeric('required_margin', {
+            precision: 14,
+            scale: 2,
+            mode: 'number',
+        }).notNull(),
         volume: numeric('volume', { precision: 14, scale: 2, mode: 'number' }).notNull(),
         openPrice: numeric('open_price', { precision: 14, scale: 5, mode: 'number' }).notNull(),
         closePrice: numeric('close_price', { precision: 14, scale: 5, mode: 'number' }),
