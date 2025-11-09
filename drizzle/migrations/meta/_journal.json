@@ -113,6 +113,13 @@
       "when": 1762606429348,
       "tag": "0015_good_galactus",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1762712855596,
+      "tag": "0016_solid_jean_grey",
+      "breakpoints": true
     }
   ]
 }
