@@ -2,6 +2,9 @@ import { db } from '..';
 import { and, eq } from 'drizzle-orm';
 import { Wallet, wallet } from '../schema';
 import { CreateWalletType } from '../../../modules/wallet/wallet.types';
+import { HTTPException } from 'hono/http-exception';
+import { HTTP_RESPONSE_CODE } from '../../../constant';
+import { PgTransactionType } from '../../../types';
 
 export async function createWallet(userId: string, data: CreateWalletType): Promise<Wallet> {
     try {
@@ -12,24 +15,66 @@ export async function createWallet(userId: string, data: CreateWalletType): Prom
                 ...data,
             })
             .returning();
+
         return w;
     } catch (err: unknown) {
         console.error('[DB error] Failed to create wallet:', err);
-        throw err;
+
+        throw new HTTPException(HTTP_RESPONSE_CODE.SERVER_ERROR, {
+            message: 'Failed to create wallet',
+        });
     }
 }
 
-export async function getWalletByWalletId(walletId: string, userId: string) {
+export async function getWalletByWalletId({
+    walletId,
+    userId,
+    isLock,
+    trx,
+}: {
+    walletId: string;
+    userId: string;
+    isLock?: boolean;
+    trx?: PgTransactionType;
+}): Promise<Wallet> {
     try {
-        const [w] = await db
+        const exe = trx ?? db;
+
+        if (isLock) {
+            const [w] = await exe
+                .select()
+                .from(wallet)
+                .where(and(eq(wallet.id, walletId), eq(wallet.userId, userId)))
+                .for('update');
+
+            if (!w) {
+                throw new HTTPException(HTTP_RESPONSE_CODE.NOT_FOUND, {
+                    message: 'Wallet not found. Please make one',
+                });
+            }
+
+            return w;
+        }
+
+        const [w] = await exe
             .select()
             .from(wallet)
             .where(and(eq(wallet.id, walletId), eq(wallet.userId, userId)))
             .$withCache();
-        return w || null;
+
+        if (!w) {
+            throw new HTTPException(HTTP_RESPONSE_CODE.NOT_FOUND, {
+                message: 'Wallet not found. Please make one',
+            });
+        }
+
+        return w;
     } catch (err: unknown) {
         console.error('[DB error] Failed to get wallet by wallet id:', err);
-        throw err;
+
+        throw new HTTPException(HTTP_RESPONSE_CODE.SERVER_ERROR, {
+            message: 'Failed to get wallet',
+        });
     }
 }
 
@@ -43,9 +88,38 @@ export async function getWallet(
             .from(wallet)
             .where(and(eq(wallet.userId, userId), eq(wallet.type, walletType)))
             .$withCache();
+
         return w || null;
     } catch (err: unknown) {
         console.error('[DB error] Failed to fetch wallet:', err);
-        throw err;
+
+        throw new HTTPException(HTTP_RESPONSE_CODE.SERVER_ERROR, {
+            message: 'Failed to fetch wallet',
+        });
+    }
+}
+
+export async function updateWallet(
+    walletId: string,
+    userId: string,
+    data: Omit<Partial<typeof wallet.$inferInsert>, 'id' | 'userId' | 'createdAt'>,
+    trx?: PgTransactionType
+): Promise<Wallet> {
+    try {
+        const exe = trx ?? db;
+
+        const [w] = await exe
+            .update(wallet)
+            .set(data)
+            .where(and(eq(wallet.id, walletId), eq(wallet.userId, userId)))
+            .returning();
+
+        return w;
+    } catch (err: unknown) {
+        console.error('[DB error] Failed to update wallet:', err);
+
+        throw new HTTPException(HTTP_RESPONSE_CODE.SERVER_ERROR, {
+            message: 'Failed to fetch wallet by position',
+        });
     }
 }

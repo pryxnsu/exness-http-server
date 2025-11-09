@@ -1,0 +1,119 @@
+import { HTTPException } from 'hono/http-exception';
+import { HTTP_RESPONSE_CODE } from '../../constant';
+import { publish } from '../../services/redis/publisher';
+import { env } from '../../env';
+import { Deal, Order, Position, Wallet } from '../../lib/db/schema';
+
+export function publishOrderEvent(
+    t: 'new' | 'del',
+    order: Order,
+    type: number,
+    sl: number,
+    tp: number,
+    positionId: string | number
+) {
+    try {
+        publish(env.orderExecutedChannel, {
+            e: 'orders',
+            t: t,
+            d: {
+                orderId: order.id,
+                type,
+                price: order.requestedPrice,
+                volume: order.volume,
+                instrument: order.instrument,
+                sl: sl,
+                tp: tp,
+                openTime: order.requestedAt.getTime(),
+                marginRate: order.executedPrice,
+                positionId,
+            },
+        });
+    } catch (err: unknown) {
+        console.error('[Publish Error] occurred while publish order event', err);
+        throw new HTTPException(HTTP_RESPONSE_CODE.SERVICE_UNAVAILABLE, {
+            message: 'Failed to publish order event',
+        });
+    }
+}
+
+export function publishPositionEvent(
+    t: 'open' | 'close',
+    price: number,
+    orderId: string,
+    position: Position,
+    type: number,
+    executedPrice: number
+) {
+    try {
+        publish(env.positionChannel, {
+            e: 'positions',
+            t: t,
+            d: {
+                positionId: position.id,
+                orderId,
+                type,
+                price,
+                openPrice: position.openPrice,
+                volume: position.volume,
+                instrument: position.instrument,
+                sl: position.sl,
+                tp: position.tp,
+                openTime: position.openedAt.getTime(),
+                closeTime: null,
+                profit: 0,
+                marginRate: executedPrice,
+            },
+        });
+    } catch (err: unknown) {
+        console.error('[Publish Error] occurred while publish position event', err);
+        throw new HTTPException(HTTP_RESPONSE_CODE.SERVICE_UNAVAILABLE, {
+            message: 'Failed to publish position event',
+        });
+    }
+}
+
+export function publishDealsEvent(t: 'in' | 'out', d: Deal) {
+    try {
+        const { id, time, ...rest } = d;
+        publish(env.dealsChannel, {
+            e: 'deals',
+            t: t,
+            d: {
+                dealId: id,
+                time: time.getTime(),
+                ...rest,
+            },
+        });
+    } catch (err: unknown) {
+        console.error('[Publish Error] occurred while publish deals event', err);
+        throw new HTTPException(HTTP_RESPONSE_CODE.SERVICE_UNAVAILABLE, {
+            message: 'Failed to publish deals event',
+        });
+    }
+}
+
+export function publishAccountEvent(t: 'upd', w: Wallet) {
+    try {
+        publish(env.accountChannel, {
+            e: 'account',
+            t: t,
+            d: {
+                balance: {
+                    balance: w.balance,
+                    credit: 0.0,
+                },
+                settings: {
+                    currency: 'USD',
+                    leverage: w.leverage,
+                    positionMode: 0,
+                },
+            },
+        });
+    } catch (err: unknown) {
+        console.error('[Publish Error] occurred while publish account event', err);
+        throw new HTTPException(HTTP_RESPONSE_CODE.SERVICE_UNAVAILABLE, {
+            message: 'Failed to publish account event',
+        });
+    }
+}

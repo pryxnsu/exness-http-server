@@ -1,14 +1,20 @@
 import { Context } from 'hono';
-import { deal, order, position, User, wallet } from '../../lib/db/schema';
+import { User } from '../../lib/db/schema';
 import { calculateRequiredMargin, decodeOrderType, getInstrumentConfig } from './account.service';
-import { getWalletByWalletId } from '../../lib/db/queries/wallet.queries';
+import { getWalletByWalletId, updateWallet } from '../../lib/db/queries/wallet.queries';
 import { HTTPException } from 'hono/http-exception';
 import { HTTP_RESPONSE_CODE } from '../../constant';
 import { getCurrentMarketPrice } from '../../services/redis/utils';
 import { db } from '../../lib/db';
-import { and, eq } from 'drizzle-orm';
-import { env } from '../../env';
-import { publish } from '../../services/redis/publisher';
+import { createOrder, updateOrder } from '../../lib/db/queries/order.queries';
+import { createPosition } from '../../lib/db/queries/position.queries';
+import { createDeal } from '../../lib/db/queries/deal.queries';
+import {
+    publishAccountEvent,
+    publishDealsEvent,
+    publishOrderEvent,
+    publishPositionEvent,
+} from './account.events';
 
 export const executeOrder = async (c: Context) => {
     const user = c.get('user') as User;
@@ -26,14 +32,7 @@ export const executeOrder = async (c: Context) => {
         volume: number;
     };
 
-    // user wallet
-    const w = await getWalletByWalletId(walletId, user.id);
-
-    if (!w) {
-        throw new HTTPException(HTTP_RESPONSE_CODE.NOT_FOUND, {
-            message: 'Wallet not found. Please make one',
-        });
-    }
+    const w = await getWalletByWalletId({ walletId, userId: user.id });
 
     // decode side and orderkind
     const { side, orderKind } = decodeOrderType(type);
@@ -47,12 +46,6 @@ export const executeOrder = async (c: Context) => {
 
     // current price of instrument
     const tick = await getCurrentMarketPrice(instrument);
-
-    if (!tick || Number.isNaN(tick.ask) || Number.isNaN(tick.bid)) {
-        throw new HTTPException(HTTP_RESPONSE_CODE.SERVICE_UNAVAILABLE, {
-            message: 'Market price unavailable',
-        });
-    }
 
     const executedPrice = side === 'buy' ? tick.ask : tick.bid;
 
@@ -80,17 +73,12 @@ export const executeOrder = async (c: Context) => {
 
     // --------------- DB Transactions ---------------
     const { o, p, updatedwallet, d } = await db.transaction(async trx => {
-        const [lockedWallet] = await trx
-            .select()
-            .from(wallet)
-            .where(and(eq(wallet.id, w.id), eq(wallet.userId, user.id)))
-            .for('update');
-
-        if (!lockedWallet) {
-            throw new HTTPException(HTTP_RESPONSE_CODE.NOT_FOUND, {
-                message: 'Wallet not found',
-            });
-        }
+        const lockedWallet = await getWalletByWalletId({
+            walletId,
+            userId: user.id,
+            isLock: true,
+            trx,
+        });
 
         const currentUsed = Number(lockedWallet.margin ?? 0);
         const currentFree = Number(lockedWallet.freeMargin ?? lockedWallet.balance);
@@ -101,9 +89,8 @@ export const executeOrder = async (c: Context) => {
             });
         }
 
-        const [o] = await trx
-            .insert(order)
-            .values({
+        const o = await createOrder(
+            {
                 userId: user.id,
                 instrument,
                 oneClick,
@@ -112,12 +99,12 @@ export const executeOrder = async (c: Context) => {
                 volume,
                 orderKind,
                 status: 'pending',
-            })
-            .returning();
+            },
+            trx
+        );
 
-        const [p] = await trx
-            .insert(position)
-            .values({
+        const p = await createPosition(
+            {
                 userId: user.id,
                 instrument,
                 side,
@@ -127,12 +114,12 @@ export const executeOrder = async (c: Context) => {
                 sl,
                 tp,
                 status: 'open',
-            })
-            .returning();
+            },
+            trx
+        );
 
-        const [d] = await trx
-            .insert(deal)
-            .values({
+        const d = await createDeal(
+            {
                 orderId: o.id,
                 positionId: p.id,
                 type,
@@ -146,117 +133,44 @@ export const executeOrder = async (c: Context) => {
                 sl,
                 tp,
                 reason: 2,
-            })
-            .returning();
+            },
+            trx
+        );
 
-        await trx
-            .update(order)
-            .set({
+        await updateOrder(
+            o.id,
+            user.id,
+            {
                 status: 'filled',
                 executedPrice,
                 executedAt: new Date(),
                 positionId: p.id,
-            })
-            .where(eq(order.id, o.id));
+            },
+            trx
+        );
 
         const newUsed = currentUsed + requiredMargin;
         const newFree = currentFree - requiredMargin;
-        const [updatedwallet] = await trx
-            .update(wallet)
-            .set({
+
+        const updatedwallet = await updateWallet(
+            lockedWallet.id,
+            user.id,
+            {
                 margin: newUsed,
                 freeMargin: newFree,
-            })
-            .where(eq(wallet.id, lockedWallet.id))
-            .returning();
+            },
+            trx
+        );
 
         return { o, p, updatedwallet, d };
     });
 
     // --------------- Publish events -------------
-    const openTimeMs = o.requestedAt.getTime();
-
-    publish(env.orderExecutedChannel, {
-        e: 'orders',
-        t: 'new',
-        d: {
-            orderId: o.id,
-            type,
-            price,
-            volume,
-            instrument,
-            sl,
-            tp,
-            openTime: openTimeMs,
-            marginRate: executedPrice,
-            positionId: 0,
-        },
-    });
-
-    publish(env.orderExecutedChannel, {
-        e: 'orders',
-        t: 'del',
-        d: {
-            orderId: o.id,
-            type,
-            price,
-            volume,
-            instrument,
-            sl,
-            tp,
-            marginRate: executedPrice,
-            openTime: openTimeMs,
-            positionId: p.id,
-        },
-    });
-
-    publish(env.positionChannel, {
-        e: 'positions',
-        t: 'open',
-        d: {
-            positionId: p.id,
-            orderId: o.id,
-            type,
-            price,
-            openPrice: p.openPrice,
-            volume,
-            instrument,
-            sl,
-            tp,
-            openTime: p.openedAt.getTime(),
-            closeTime: null,
-            profit: 0,
-            marginRate: executedPrice,
-        },
-    });
-
-    // Publish deals event
-    const { id, time, ...rest } = d;
-    publish(env.dealsChannel, {
-        e: 'deals',
-        t: 'in',
-        d: {
-            dealId: id,
-            time: time.getTime(),
-            ...rest,
-        },
-    });
-
-    publish(env.accountChannel, {
-        e: 'wallet',
-        t: 'upd',
-        d: {
-            balance: {
-                balance: updatedwallet.balance,
-                credit: 0.0,
-            },
-            settings: {
-                currency: 'USD',
-                leverage: updatedwallet.leverage,
-                positionMode: 0,
-            },
-        },
-    });
+    publishOrderEvent('new', o, type, sl, tp, 0);
+    publishOrderEvent('del', o, type, sl, tp, p.id);
+    publishPositionEvent('open', price, o.id, p, type, executedPrice);
+    publishDealsEvent('in', d);
+    publishAccountEvent('upd', updatedwallet);
 
     return c.json({
         success: true,
