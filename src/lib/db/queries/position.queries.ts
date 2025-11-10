@@ -32,10 +32,27 @@ export async function createPosition(
 export async function getPosition(
     positionId: string,
     userId: string,
+    isLock?: boolean,
     trx?: PgTransactionType
 ): Promise<Position> {
     try {
         const exe = trx ?? db;
+
+        if (isLock) {
+            const [p] = await exe
+                .select()
+                .from(position)
+                .where(and(eq(position.id, positionId), eq(position.userId, userId)))
+                .for('update');
+
+            if (!p) {
+                throw new HTTPException(HTTP_RESPONSE_CODE.SERVICE_UNAVAILABLE, {
+                    message: 'Position not found or already closed',
+                });
+            }
+
+            return p;
+        }
 
         const [p] = await exe
             .select()
@@ -45,13 +62,7 @@ export async function getPosition(
 
         if (!p) {
             throw new HTTPException(HTTP_RESPONSE_CODE.SERVICE_UNAVAILABLE, {
-                message: 'Position not found',
-            });
-        }
-
-        if (p.status === 'closed') {
-            throw new HTTPException(HTTP_RESPONSE_CODE.SERVICE_UNAVAILABLE, {
-                message: 'Position already closed',
+                message: 'Position not found or already closed',
             });
         }
 
