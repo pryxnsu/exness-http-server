@@ -22,10 +22,10 @@ export function publishOrderEvent(
                 price: order.requestedPrice,
                 volume: order.volume,
                 instrument: order.instrument,
-                sl: sl,
-                tp: tp,
+                sl,
+                tp,
                 openTime: order.requestedAt.getTime(),
-                marginRate: order.executedPrice,
+                marginRate: order.requestedPrice,
                 positionId,
             },
         });
@@ -38,12 +38,13 @@ export function publishOrderEvent(
 }
 
 export function publishPositionEvent(
-    t: 'open' | 'close',
+    t: 'open' | 'close' | 'upd' | 'part_close',
     price: number,
     orderId: string,
+    volume: number,
     position: Position,
     type: number,
-    executedPrice: number
+    profit?: number
 ) {
     try {
         publish(env.positionChannel, {
@@ -55,14 +56,14 @@ export function publishPositionEvent(
                 type,
                 price,
                 openPrice: position.openPrice,
-                volume: position.volume,
+                volume,
                 instrument: position.instrument,
                 sl: position.sl,
                 tp: position.tp,
                 openTime: position.openedAt.getTime(),
                 closeTime: null,
-                profit: 0,
-                marginRate: executedPrice,
+                profit: profit ?? 0.0,
+                marginRate: position.openPrice,
             },
         });
     } catch (err: unknown) {
