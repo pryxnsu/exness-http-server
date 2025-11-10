@@ -1,13 +1,13 @@
 import { Context } from 'hono';
-import { User } from '../../lib/db/schema';
+import { position, User } from '../../lib/db/schema';
 import { calculateRequiredMargin, decodeOrderType, getInstrumentConfig } from './account.service';
 import { getWalletByWalletId, updateWallet } from '../../lib/db/queries/wallet.queries';
 import { HTTPException } from 'hono/http-exception';
 import { HTTP_RESPONSE_CODE } from '../../constant';
 import { getCurrentMarketPrice } from '../../services/redis/utils';
 import { db } from '../../lib/db';
-import { createOrder, updateOrder } from '../../lib/db/queries/order.queries';
-import { createPosition } from '../../lib/db/queries/position.queries';
+import { createOrder, getOrderByPositionId, updateOrder } from '../../lib/db/queries/order.queries';
+import { createPosition, getPosition, updatePosition } from '../../lib/db/queries/position.queries';
 import { createDeal } from '../../lib/db/queries/deal.queries';
 import {
     publishAccountEvent,
@@ -45,7 +45,7 @@ export const executeOrder = async (c: Context) => {
     }
 
     // current price of instrument
-    const tick = await getCurrentMarketPrice(instrument);
+    let tick = await getCurrentMarketPrice(instrument);
 
     const executedPrice = side === 'buy' ? tick.ask : tick.bid;
 
@@ -168,7 +168,26 @@ export const executeOrder = async (c: Context) => {
     // --------------- Publish events -------------
     publishOrderEvent('new', o, type, sl, tp, 0);
     publishOrderEvent('del', o, type, sl, tp, p.id);
-    publishPositionEvent('open', price, o.id, p, type, executedPrice);
+    publishPositionEvent('open', {
+        dealId: d.id,
+        positionId: p.id,
+        type,
+        price,
+        openPrice: p.openPrice,
+        volume: p.volume,
+        instrument: p.instrument,
+        sl: p.sl,
+        tp: p.tp,
+        commission: d.commission,
+        fee: d.fee,
+        swap: d.swap,
+        openTime: p.openedAt.getTime(),
+        closeTime: null,
+        profit: null,
+        marginRate: p.openPrice,
+        reason: d.reason,
+    });
+
     publishDealsEvent('in', d);
     publishAccountEvent('upd', updatedwallet);
 

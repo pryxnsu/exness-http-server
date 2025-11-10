@@ -7,3 +7,24 @@ export type PgTransactionType = PgTransaction<
     Record<string, never>,
     ExtractTablesWithRelations<Record<string, never>>
 >;
+
+export interface PositionEventProp {
+    dealId: string;
+    positionId: string;
+    type: number;
+    price?: number;
+    openPrice: number;
+    closePrice?: number;
+    volume: number;
+    instrument: string;
+    sl: number | null;
+    tp: number | null;
+    commission: number | null;
+    fee: number | null;
+    swap: number | null;
+    openTime: number;
+    closeTime: number | null;
+    profit: number | null;
+    marginRate: number;
+    reason: number;
+}

@@ -3,6 +3,7 @@ import { HTTP_RESPONSE_CODE } from '../../constant';
 import { publish } from '../../services/redis/publisher';
 import { env } from '../../env';
 import { Deal, Order, Position, Wallet } from '../../lib/db/schema';
+import { PositionEventProp } from '../../types';
 
 export function publishOrderEvent(
     t: 'new' | 'del',
@@ -37,34 +38,16 @@ export function publishOrderEvent(
     }
 }
 
+
 export function publishPositionEvent(
     t: 'open' | 'close' | 'upd' | 'part_close',
-    price: number,
-    orderId: string,
-    volume: number,
-    position: Position,
-    type: number,
-    profit?: number
+    data: PositionEventProp
 ) {
     try {
         publish(env.positionChannel, {
             e: 'positions',
             t: t,
-            d: {
-                positionId: position.id,
-                orderId,
-                type,
-                price,
-                openPrice: position.openPrice,
-                volume,
-                instrument: position.instrument,
-                sl: position.sl,
-                tp: position.tp,
-                openTime: position.openedAt.getTime(),
-                closeTime: null,
-                profit: profit ?? 0.0,
-                marginRate: position.openPrice,
-            },
+            d: data,
         });
     } catch (err: unknown) {
         console.error('[Publish Error] occurred while publish position event', err);
