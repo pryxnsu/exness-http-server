@@ -55,7 +55,8 @@ export const wallet = async (c: Context) => {
     }
 
     const wallet = await getWallet(user.id, walletType);
-    if (walletType == 'real' && !wallet) {
+
+    if (!wallet || walletType == 'real') {
         throw new HTTPException(HTTP_RESPONSE_CODE.NOT_FOUND, {
             message: 'No real wallet found. Please make one',
         });
