@@ -238,7 +238,8 @@ export const getOpenedPositions = async (c: Context) => {
     }
 
     const result = positions.map(p => {
-        const sym = p.instrument.replace('/', '');
+        const sym = p.instrument.includes('/') ? p.instrument.replace('/', '') : p.instrument;
+
         const tick = ticks.get(sym);
         if (!tick || !tick.ask || !tick.bid) {
             console.warn(`[Warning] Missing tick data for ${sym}`);
@@ -246,12 +247,13 @@ export const getOpenedPositions = async (c: Context) => {
                 message: `Missing tick data for ${sym}`,
             });
         }
+
         const currPrice = p.side === 'buy' ? tick.ask : tick.bid;
-        const pnl = calculatePnl(p.instrument, p.side, p.openPrice, currPrice, p.volume);
+        const pnl = calculatePnl(sym, p.side, p.openPrice, currPrice, p.volume);
 
         return {
             symbol: p.instrument,
-            type: p.side,
+            type: p.side === 'buy' ? 0 : 1,
             volume: p.volume,
             openPrice: p.openPrice,
             currentPrice: currPrice,
@@ -286,9 +288,29 @@ export const getHistoryPositions = async (c: Context) => {
 
     const result = await getDealByPosition(from, to, user.id);
 
+    const positions = result.map(d => ({
+        dealId: d.dealId,
+        position: d.positionId,
+        type: d.type,
+        openPrice: d.openPrice,
+        closePrice: d.closePrice,
+        volume: d.volume,
+        symbol: d.instrument,
+        sl: d.sl,
+        tp: d.tp,
+        openTime: d.openTime,
+        closeTime: d.closeTime,
+        swap: d.swap,
+        commission: d.commission,
+        fee: d.fee,
+        pnl: d.profit,
+        marginRate: d.closePrice,
+        reason: d.reason,
+    }));
+
     return c.json({
         success: true,
         message: 'Positions history fetched successfuly',
-        positions: result.length ? result : [],
+        positions: positions.length ? positions : [],
     });
 };
