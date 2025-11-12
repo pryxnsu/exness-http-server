@@ -1,4 +1,5 @@
-import { InstrumentConfig, INSTRUMENTS } from '../../constant';
+import { HTTPException } from 'hono/http-exception';
+import { HTTP_RESPONSE_CODE, InstrumentConfig, INSTRUMENTS } from '../../constant';
 
 export function decodeOrderType(type: number): {
     side: 'buy' | 'sell';
@@ -63,4 +64,27 @@ export function calculateRequiredMargin({
 
 export function getInstrumentConfig(symbol: string): InstrumentConfig {
     return INSTRUMENTS[symbol];
+}
+
+export function calculatePnl(
+    instrument: string,
+    side: 'buy' | 'sell',
+    openPrice: number,
+    closePrice: number,
+    closingVolume: number
+) {
+    const { contractSize } = getInstrumentConfig(instrument);
+
+    if (!contractSize) {
+        throw new HTTPException(HTTP_RESPONSE_CODE.SERVICE_UNAVAILABLE, {
+            message: 'Contract size not available',
+        });
+    }
+
+    const pnl: number =
+        side === 'buy'
+            ? (closePrice - Number(openPrice)) * Number(closingVolume) * contractSize
+            : (Number(openPrice) - closePrice) * Number(closingVolume) * contractSize;
+
+    return pnl;
 }

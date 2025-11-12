@@ -30,9 +30,32 @@ export async function getCurrentMarketPrice(instrument: string): Promise<MarketD
         return tick;
     } catch (err: unknown) {
         console.error('[Redis Error] occurred in fetching price of instrument', err);
-        
+
         throw new HTTPException(HTTP_RESPONSE_CODE.SERVICE_UNAVAILABLE, {
             message: 'Failed to fetch market price',
         });
     }
+}
+
+export async function getAllMarketPrices(key: string) {
+    const data = await redis.hGetAll(key);
+
+    const marketPrices = new Map<string, { bid: number; ask: number; time: number }>();
+
+    for (const [symbol, value] of Object.entries(data)) {
+        try {
+            const parsed = JSON.parse(value);
+
+            if (typeof parsed.bid !== 'number' || typeof parsed.ask !== 'number') {
+                console.warn(`Invalid tick format for ${symbol}:`, parsed);
+                continue;
+            }
+
+            marketPrices.set(symbol, parsed);
+        } catch (err) {
+            console.error(`Error parsing tick data for ${symbol}`, err);
+        }
+    }
+
+    return marketPrices;
 }
