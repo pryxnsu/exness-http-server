@@ -14,34 +14,58 @@ declare module 'hono' {
     }
 }
 export const auth = async (c: Context, next: any) => {
-    const token = getCookie(c, env.accessTokenName) ?? c.req.header('Authorization')?.split(' ')[1];
-    if (!token || !token.trim()) {
+    try {
+        const token =
+            getCookie(c, env.accessTokenName) ?? c.req.header('Authorization')?.split(' ')[1];
+        if (!token || !token.trim()) {
+            throw new HTTPException(HTTP_RESPONSE_CODE.UNAUTHORIZED, {
+                message: 'Unauthorized! Please login',
+            });
+        }
+
+        const payload = await verify(token, env.jwtSecret);
+        if (typeof payload === 'string' || !payload.user) {
+            throw new HTTPException(HTTP_RESPONSE_CODE.UNAUTHORIZED, {
+                message: 'Unauthorized! Please login',
+            });
+        }
+
+        const session = await getSessionByToken(token);
+        if (!session) {
+            throw new HTTPException(HTTP_RESPONSE_CODE.UNAUTHORIZED, {
+                message: 'Session has expired! Please login',
+            });
+        }
+
+        if (new Date() > session.expiresAt || session.revoked) {
+            throw new HTTPException(HTTP_RESPONSE_CODE.UNAUTHORIZED, {
+                message: 'Session has expired! Please login',
+            });
+        }
+
+        c.set('user', payload.user as User);
+        c.set('session', session as Session);
+        await next();
+    } catch (err: unknown) {
+        if (err instanceof HTTPException) {
+            if (err?.name === 'TokenExpiredError') {
+                throw new HTTPException(HTTP_RESPONSE_CODE.UNAUTHORIZED, {
+                    message: 'Session expired! Please login again.',
+                });
+            }
+            if (err?.name === 'JsonWebTokenError') {
+                throw new HTTPException(HTTP_RESPONSE_CODE.UNAUTHORIZED, {
+                    message: 'Invalid token. Please login again.',
+                });
+            }
+            if (err?.name === 'NotBeforeError') {
+                throw new HTTPException(HTTP_RESPONSE_CODE.UNAUTHORIZED, {
+                    message: 'Token not active yet.',
+                });
+            }
+        }
         throw new HTTPException(HTTP_RESPONSE_CODE.UNAUTHORIZED, {
-            message: 'Unauthorized! Please login',
+            message: 'Invalid or expired token.',
         });
     }
-
-    const payload = await verify(token, env.jwtSecret);
-    if (typeof payload === 'string' || !payload.user) {
-        throw new HTTPException(HTTP_RESPONSE_CODE.UNAUTHORIZED, {
-            message: 'Unauthorized! Please login',
-        });
-    }
-
-    const session = await getSessionByToken(token);
-    if (!session) {
-        throw new HTTPException(HTTP_RESPONSE_CODE.UNAUTHORIZED, {
-            message: 'Session has expired! Please login',
-        });
-    }
-
-    if (new Date() > session.expiresAt || session.revoked) {
-        throw new HTTPException(HTTP_RESPONSE_CODE.UNAUTHORIZED, {
-            message: 'Session has expired! Please login',
-        });
-    }
-
-    c.set('user', payload.user as User);
-    c.set('session', session as Session);
-    await next();
 };
