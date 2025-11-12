@@ -1,9 +1,9 @@
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { favoriteInstrument, FavoriteInstrument, Instrument, instrument } from '../schema';
 import { db } from '../index';
 import { HTTP_RESPONSE_CODE } from '../../../constant';
 import { HTTPException } from 'hono/http-exception';
-import { and } from 'drizzle-orm/sql/expressions/conditions';
+import { and, ilike } from 'drizzle-orm/sql/expressions/conditions';
 
 export async function createNewInstrument(
     symbol: string,
@@ -91,6 +91,30 @@ export async function destroyInstrument(
         console.error('[DB error] Failed to delete favorite instrument:', err);
         throw new HTTPException(HTTP_RESPONSE_CODE.SERVER_ERROR, {
             message: 'Failed to delete favorite Instrument',
+        });
+    }
+}
+
+export async function symbolInDb(sym: string): Promise<string> {
+    try {
+        const [{ symbol }] = await db
+            .select({
+                symbol: instrument.symbol,
+            })
+            .from(instrument)
+            .where(ilike(sql`REPLACE(${instrument.symbol}, '/', '')`, `%${sym}%`));
+
+        if (!symbol) {
+            throw new HTTPException(HTTP_RESPONSE_CODE.BAD_REQUEST, {
+                message: 'Symbol is not allowed to trade',
+            });
+        }
+
+        return symbol;
+    } catch (err: unknown) {
+        console.error('[DB error] Failed to find symbol', err);
+        throw new HTTPException(HTTP_RESPONSE_CODE.SERVER_ERROR, {
+            message: 'Failed to find symbol',
         });
     }
 }

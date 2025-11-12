@@ -24,6 +24,7 @@ import {
     publishPositionEvent,
 } from './account.events';
 import { getInstrumentPriceKey } from '../../services/redis/keys';
+import { symbolInDb } from '../../lib/db/queries/instrument.queries';
 
 export const executeOrder = async (c: Context) => {
     const user = c.get('user') as User;
@@ -31,7 +32,15 @@ export const executeOrder = async (c: Context) => {
     // @ts-ignore
     const body = c.req.valid('json');
 
-    const { instrument, oneClick, price, sl, tp, type, volume } = body as {
+    const {
+        instrument: sym,
+        oneClick,
+        price,
+        sl,
+        tp,
+        type,
+        volume,
+    } = body as {
         instrument: string;
         oneClick: boolean;
         price: number;
@@ -40,6 +49,8 @@ export const executeOrder = async (c: Context) => {
         type: number;
         volume: number;
     };
+
+    const symbol = await symbolInDb(sym);
 
     const w = await getWalletByWalletId({ walletId, userId: user.id });
 
@@ -54,11 +65,11 @@ export const executeOrder = async (c: Context) => {
     }
 
     // current price of instrument
-    let tick = await getCurrentMarketPrice(instrument);
+    let tick = await getCurrentMarketPrice(sym);
 
     const executedPrice = side === 'buy' ? tick.ask : tick.bid;
 
-    const { contractSize, marginFactor } = getInstrumentConfig(instrument);
+    const { contractSize, marginFactor } = getInstrumentConfig(sym);
 
     if (!contractSize || !marginFactor) {
         throw new HTTPException(HTTP_RESPONSE_CODE.SERVICE_UNAVAILABLE, {
@@ -101,7 +112,7 @@ export const executeOrder = async (c: Context) => {
         const o = await createOrder(
             {
                 userId: user.id,
-                instrument,
+                instrument: symbol,
                 oneClick,
                 side,
                 requestedPrice: price,
@@ -115,7 +126,7 @@ export const executeOrder = async (c: Context) => {
         const p = await createPosition(
             {
                 userId: user.id,
-                instrument,
+                instrument: symbol,
                 side,
                 requiredMargin,
                 volume,
@@ -137,7 +148,7 @@ export const executeOrder = async (c: Context) => {
                 time: p.openedAt,
                 volume,
                 volumeClosed: 0.0,
-                instrument,
+                instrument: symbol,
                 profit: 0,
                 sl,
                 tp,
