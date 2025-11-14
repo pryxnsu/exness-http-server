@@ -186,11 +186,12 @@ export const executeOrder = async (c: Context) => {
     });
 
     // --------------- Publish events -------------
-    publishOrderEvent('new', o, type, sl, tp, 0);
-    publishOrderEvent('del', o, type, sl, tp, p.id);
+    publishOrderEvent('new', user.id, o, type, sl, tp, 0);
+    publishOrderEvent('del', user.id, o, type, sl, tp, p.id);
     publishPositionEvent('open', {
         dealId: d.id,
         positionId: p.id,
+        userId: user.id,
         type,
         price,
         openPrice: p.openPrice,
@@ -208,8 +209,8 @@ export const executeOrder = async (c: Context) => {
         reason: d.reason,
     });
 
-    publishDealsEvent('in', d);
-    publishAccountEvent('upd', updatedwallet);
+    publishDealsEvent('in', user.id, d);
+    publishAccountEvent('upd', user.id, updatedwallet);
 
     return c.json({
         success: true,

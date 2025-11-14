@@ -7,6 +7,7 @@ import { PositionEventProp } from '../../types';
 
 export function publishOrderEvent(
     t: 'new' | 'del',
+    userId: string,
     order: Order,
     type: number,
     sl: number,
@@ -18,6 +19,7 @@ export function publishOrderEvent(
             e: 'orders',
             t: t,
             d: {
+                userId,
                 orderId: order.id,
                 type,
                 price: order.requestedPrice,
@@ -38,7 +40,6 @@ export function publishOrderEvent(
     }
 }
 
-
 export function publishPositionEvent(
     t: 'open' | 'close' | 'upd' | 'part_close',
     data: PositionEventProp
@@ -57,13 +58,14 @@ export function publishPositionEvent(
     }
 }
 
-export function publishDealsEvent(t: 'in' | 'out', d: Deal) {
+export function publishDealsEvent(t: 'in' | 'out', userId: string, d: Deal) {
     try {
         const { id, time, ...rest } = d;
         publish(env.dealsChannel, {
             e: 'deals',
             t: t,
             d: {
+                userId,
                 dealId: id,
                 time: time.getTime(),
                 ...rest,
@@ -77,7 +79,7 @@ export function publishDealsEvent(t: 'in' | 'out', d: Deal) {
     }
 }
 
-export function publishAccountEvent(t: 'upd', w: Wallet) {
+export function publishAccountEvent(t: 'upd', userId: string, w: Wallet) {
     try {
         publish(env.accountChannel, {
             e: 'account',
@@ -92,6 +94,7 @@ export function publishAccountEvent(t: 'upd', w: Wallet) {
                     leverage: w.leverage,
                     positionMode: 0,
                 },
+                userId,
             },
         });
     } catch (err: unknown) {
