@@ -11,10 +11,12 @@ import { HTTPException } from 'hono/http-exception';
 import { HTTP_RESPONSE_CODE } from '../../constant';
 import { getAllMarketPrices, getCurrentMarketPrice } from '../../services/redis/utils';
 import { db } from '../../lib/db';
-import { createOrder, updateOrder } from '../../lib/db/queries/order.queries';
+import { createOrder, getOrderByPositionId, updateOrder } from '../../lib/db/queries/order.queries';
 import {
     createPosition,
+    getPosition,
     getPositionsByUserId,
+    updatePosition,
 } from '../../lib/db/queries/position.queries';
 import { createDeal, getDealByPosition } from '../../lib/db/queries/deal.queries';
 import {
@@ -220,6 +222,234 @@ export const executeOrder = async (c: Context) => {
             price: executedPrice,
             orderId: o.id,
             positionId: p.id,
+        },
+    });
+};
+
+export const closePosition = async (c: Context) => {
+    const user = c.get('user') as User;
+    const { walletId, positionId } = c.req.param();
+
+    // @ts-ignore
+    const body = c.req.valid('json');
+
+    const { volume: closingVolume } = body;
+
+    if (closingVolume <= 0) {
+        throw new HTTPException(HTTP_RESPONSE_CODE.BAD_REQUEST, {
+            message: 'Closing volume must be greater than 0',
+        });
+    }
+
+    const { o, cp, updatedwallet, d, pnl, closePrice, p, isPartialClose } = await db.transaction(
+        async trx => {
+            const p = await getPosition(positionId, user.id, true, trx);
+
+            if (p.status === 'closed') {
+                throw new HTTPException(HTTP_RESPONSE_CODE.BAD_REQUEST, {
+                    message: 'Position already closed',
+                });
+            }
+
+            const positionVolume = p.volume;
+
+            if (closingVolume <= 0) {
+                throw new HTTPException(HTTP_RESPONSE_CODE.BAD_REQUEST, {
+                    message: 'Closing volume must be greater than 0',
+                });
+            }
+
+            if (closingVolume > positionVolume) {
+                throw new HTTPException(HTTP_RESPONSE_CODE.BAD_REQUEST, {
+                    message: `Cannot close more than available volume. Available: ${positionVolume}`,
+                });
+            }
+
+            const isPartialClose = closingVolume < positionVolume;
+
+            const lockedWallet = await getWalletByWalletId({
+                walletId,
+                userId: user.id,
+                isLock: true,
+                trx,
+            });
+
+            const tick = await getCurrentMarketPrice(p.instrument);
+
+            const closePrice = p.side === 'buy' ? tick.ask : tick.bid;
+
+            const positionMargin = p.requiredMargin;
+
+            const marginToRelease = (closingVolume / positionVolume) * positionMargin;
+
+            const remainingMargin = Number((Number(positionMargin) - marginToRelease).toFixed(2));
+            const newVolume = Number((Number(positionVolume) - Number(closingVolume)).toFixed(2));
+
+            if (remainingMargin < 0 || newVolume < 0) {
+                throw new HTTPException(HTTP_RESPONSE_CODE.SERVICE_UNAVAILABLE, {
+                    message: 'Calculation error. Please try again.',
+                });
+            }
+
+            const pnl = calculatePnl(p.instrument, p.side, p.openPrice, closePrice, closingVolume);
+
+            const cp = await updatePosition(
+                positionId,
+                user.id,
+                {
+                    volume: newVolume,
+                    requiredMargin: remainingMargin,
+                    closePrice: isPartialClose ? null : closePrice,
+                    closedAt: isPartialClose ? null : new Date(),
+                    status: isPartialClose ? 'open' : 'closed',
+                    pnl: isPartialClose ? null : pnl,
+                },
+                trx
+            );
+
+            const oldBalance = lockedWallet.balance;
+            const oldEquity = lockedWallet.equity;
+            const oldMargin = lockedWallet.margin;
+            const oldFreeMargin = lockedWallet.freeMargin;
+
+            if (!oldBalance || !oldEquity || !oldMargin || !oldFreeMargin) {
+                throw new HTTPException(HTTP_RESPONSE_CODE.SERVICE_UNAVAILABLE, {
+                    message: 'Something went wrong with wallet, Please try again!',
+                });
+            }
+
+            const newBalance = oldBalance + pnl;
+            const newEquity = oldEquity + pnl;
+            const newMargin = oldMargin - marginToRelease;
+            const newFreeMargin = oldFreeMargin + marginToRelease;
+
+            const updatedwallet = await updateWallet(
+                walletId,
+                user.id,
+                {
+                    balance: newBalance,
+                    equity: newEquity,
+                    margin: newMargin,
+                    freeMargin: newFreeMargin,
+                },
+                trx
+            );
+
+            const o = await getOrderByPositionId(positionId, trx);
+
+            const d = await createDeal(
+                {
+                    orderId: o.id,
+                    positionId: p.id,
+                    type: p.side === 'buy' ? 0 : 1,
+                    direction: 1,
+                    price: closePrice,
+                    time: new Date(),
+                    volume: closingVolume,
+                    volumeClosed: closingVolume,
+                    instrument: p.instrument,
+                    profit: pnl,
+                    sl: p.sl,
+                    tp: p.tp,
+                    commission: 0,
+                    fee: 0,
+                    swap: 0,
+                    reason: 2,
+                },
+                trx
+            );
+
+            return { o, cp, updatedwallet, d, pnl, closePrice, p, isPartialClose };
+        }
+    );
+
+    // --------------- Publish events -------------
+
+    const type = o.side === 'buy' ? 0 : 1;
+
+    if (isPartialClose) {
+        publishPositionEvent('upd', {
+            dealId: d.id,
+            positionId: p.id,
+            userId: user.id,
+            type,
+            price: closePrice,
+            openPrice: p.openPrice,
+            volume: closingVolume,
+            instrument: p.instrument,
+            sl: p.sl,
+            tp: p.tp,
+            commission: d.commission,
+            fee: d.fee,
+            swap: d.swap,
+            openTime: p.openedAt.getTime(),
+            closeTime: null,
+            profit: pnl,
+            marginRate: p.openPrice,
+            reason: d.reason,
+        });
+
+        publishPositionEvent('part_close', {
+            dealId: d.id,
+            positionId: p.id,
+            userId: user.id,
+            type,
+            price: closePrice,
+            openPrice: p.openPrice,
+            closePrice: closePrice,
+            volume: closingVolume,
+            instrument: p.instrument,
+            sl: p.sl,
+            tp: p.tp,
+            commission: d.commission,
+            fee: d.fee,
+            swap: d.swap,
+            openTime: p.openedAt.getTime(),
+            closeTime: d.time.getTime(),
+            profit: pnl,
+            marginRate: closePrice,
+            reason: d.reason,
+        });
+    } else {
+        publishPositionEvent('close', {
+            dealId: d.id,
+            positionId: p.id,
+            userId: user.id,
+            type,
+            price: closePrice,
+            openPrice: p.openPrice,
+            closePrice: closePrice,
+            volume: closingVolume,
+            instrument: p.instrument,
+            sl: p.sl,
+            tp: p.tp,
+            commission: d.commission,
+            fee: d.fee,
+            swap: d.swap,
+            openTime: p.openedAt.getTime(),
+            closeTime: d.time.getTime(),
+            profit: pnl,
+            marginRate: closePrice,
+            reason: d.reason,
+        });
+    }
+
+    publishDealsEvent('out', user.id, d);
+    publishAccountEvent('upd', user.id, updatedwallet);
+
+    console.log('[Close Position]', {
+        userId: user.id,
+        positionId,
+        closePrice,
+    });
+
+    return c.json({
+        success: true,
+        message: 'Position closed successfuly',
+        position: {
+            positionId: cp.id,
+            time: isPartialClose ? d.time.getTime() : cp.closedAt?.getTime(),
+            price: closePrice,
         },
     });
 };
