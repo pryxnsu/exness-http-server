@@ -88,3 +88,7 @@ export function calculatePnl(
 
     return pnl;
 }
+
+export function normalizeSymbol(symbol: string) {
+    return symbol.includes('/') ? symbol.replace('/', '') : symbol;
+}

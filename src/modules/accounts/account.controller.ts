@@ -5,6 +5,7 @@ import {
     calculateRequiredMargin,
     decodeOrderType,
     getInstrumentConfig,
+    normalizeSymbol,
 } from './account.service';
 import { getWalletByWalletId, updateWallet } from '../../lib/db/queries/wallet.queries';
 import { HTTPException } from 'hono/http-exception';
@@ -274,7 +275,8 @@ export const closePosition = async (c: Context) => {
                 trx,
             });
 
-            const tick = await getCurrentMarketPrice(p.instrument);
+            const sym = normalizeSymbol(p.instrument);
+            const tick = await getCurrentMarketPrice(sym);
 
             const closePrice = p.side === 'buy' ? tick.ask : tick.bid;
 
@@ -291,7 +293,7 @@ export const closePosition = async (c: Context) => {
                 });
             }
 
-            const pnl = calculatePnl(p.instrument, p.side, p.openPrice, closePrice, closingVolume);
+            const pnl = calculatePnl(sym, p.side, p.openPrice, closePrice, closingVolume);
 
             const cp = await updatePosition(
                 positionId,
@@ -375,7 +377,7 @@ export const closePosition = async (c: Context) => {
             type,
             price: closePrice,
             openPrice: p.openPrice,
-            volume: closingVolume,
+            volume: p.volume - closingVolume,
             instrument: p.instrument,
             sl: p.sl,
             tp: p.tp,
