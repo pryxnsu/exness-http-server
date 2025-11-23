@@ -16,8 +16,9 @@ export const makeDemoWallet = async (c: Context) => {
         });
     }
 
-    const newWallet = await createWallet(user.id, {
+    const newWallet = await createWallet({
         type: 'demo',
+        userId: user.id,
     });
 
     return c.json({ success: true, message: 'Wallet created successfully', data: newWallet });
@@ -37,8 +38,9 @@ export const makeRealWallet = async (c: Context) => {
 
     // TODO: Check KYC and balance logic
 
-    const newWallet = await createWallet(user.id, {
+    const newWallet = await createWallet({
         type: 'real',
+        userId: user.id,
     });
 
     return c.json({ success: true, message: 'Wallet created successfully', data: newWallet });

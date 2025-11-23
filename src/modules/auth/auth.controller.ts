@@ -19,6 +19,8 @@ import {
     getAccountByUserId,
     updateAccount,
 } from '../../lib/db/queries/account.queries';
+import { createWallet } from '../../lib/db/queries/wallet.queries';
+import { addDefaultInsToFav } from '../../lib/db/queries/instrument.queries';
 
 const oauth2Client = new google.auth.OAuth2(
     env.googleClientId,
@@ -93,7 +95,7 @@ export const googleCallback = async (c: Context) => {
 
             await createAccount({
                 tx,
-                userId: newUser?.id as string,
+                userId: newUser.id,
                 providerId: 'google',
                 accountId: id as string,
                 idToken: tokens.id_token as string,
@@ -103,6 +105,18 @@ export const googleCallback = async (c: Context) => {
                 refreshTokenExpiresAt: new Date(tokens.expiry_date as number),
                 scope: tokens.scope as string,
             });
+
+            await createWallet({
+                type: 'demo',
+                balance: 10000.0,
+                equity: 10000.0,
+                margin: 0.0,
+                freeMargin: 10000.0,
+                userId: newUser.id
+            }, tx);
+
+            await addDefaultInsToFav(newUser.id, tx);
+
             return newUser;
         });
     }

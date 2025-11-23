@@ -4,6 +4,7 @@ import { db } from '../index';
 import { HTTP_RESPONSE_CODE } from '../../../constant';
 import { HTTPException } from 'hono/http-exception';
 import { and, ilike } from 'drizzle-orm/sql/expressions/conditions';
+import { PgTransactionType } from '../../../types';
 
 export async function createNewInstrument(
     symbol: string,
@@ -115,6 +116,38 @@ export async function symbolInDb(sym: string): Promise<string> {
         console.error('[DB error] Failed to find symbol', err);
         throw new HTTPException(HTTP_RESPONSE_CODE.SERVER_ERROR, {
             message: 'Failed to find symbol',
+        });
+    }
+}
+
+export async function addDefaultInsToFav(userId: string, trx?: PgTransactionType) {
+    try {
+        const exe = trx ?? db;
+
+        const instruments = await exe
+            .select({
+                id: instrument.id,
+            })
+            .from(instrument)
+            .limit(5);
+
+        if (!instruments.length) {
+            throw new HTTPException(HTTP_RESPONSE_CODE.BAD_REQUEST, {
+                message: 'No instruments available to assign as favorites',
+            });
+        }
+
+        const records = instruments.map((i, idx) => ({
+            userId,
+            instrumentId: i.id,
+            sortOrder: idx
+        }));
+
+        await exe.insert(favoriteInstrument).values(records);
+    } catch (err: unknown) {
+        console.error('[DB error] Failed to add default favorites', err);
+        throw new HTTPException(HTTP_RESPONSE_CODE.SERVER_ERROR, {
+            message: 'Failed to add instruments to favorites',
         });
     }
 }

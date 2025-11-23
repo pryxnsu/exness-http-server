@@ -42,7 +42,7 @@ export async function createUser({
     emailVerified: boolean;
     role: 'user' | 'admin';
     avatar: string;
-}): Promise<User | null> {
+}): Promise<User> {
     try {
         const [u] = await tx
             .insert(user)
@@ -55,7 +55,7 @@ export async function createUser({
             })
             .returning();
 
-        return u || null;
+        return u;
     } catch (err: any) {
         console.error('[DB error] Failed to create user:', err);
         throw new HTTPException(HTTP_RESPONSE_CODE.SERVER_ERROR, {

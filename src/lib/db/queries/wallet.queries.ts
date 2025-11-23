@@ -1,21 +1,18 @@
 import { db } from '..';
 import { and, eq } from 'drizzle-orm';
 import { Wallet, wallet } from '../schema';
-import { CreateWalletType } from '../../../modules/wallet/wallet.types';
 import { HTTPException } from 'hono/http-exception';
 import { HTTP_RESPONSE_CODE } from '../../../constant';
 import { PgTransactionType } from '../../../types';
 
-export async function createWallet(userId: string, data: CreateWalletType): Promise<Wallet> {
+export async function createWallet(
+    data: Omit<typeof wallet.$inferInsert, 'id'>,
+    trx?: PgTransactionType
+): Promise<Wallet> {
     try {
-        const [w] = await db
-            .insert(wallet)
-            .values({
-                userId,
-                ...data,
-            })
-            .returning();
+        const exe = trx ?? db;
 
+        const [w] = await exe.insert(wallet).values(data).returning();
         return w;
     } catch (err: unknown) {
         console.error('[DB error] Failed to create wallet:', err);
