@@ -4,12 +4,14 @@ import {
     createNewInstrument,
     destroyInstrument,
     getFavoriteInstrumentsByUserId,
+    symbolInDb,
 } from '../../lib/db/queries/instrument.queries';
 import { HTTP_RESPONSE_CODE } from '../../constant';
 import { User } from '../../lib/db/schema';
-import { fetchPriceOfSymbol, fetchInstrumentCandles } from './instruments.service';
+import { fetchPriceOfSymbol, getCryptoHistory } from './instruments.service';
 import { candlesDummyData, favoritesDummyData } from '../../data';
 import { env } from '../../env';
+import { HTTPException } from 'hono/http-exception';
 
 export const addNewInstrument = async (c: Context) => {
     // @ts-ignore
@@ -104,9 +106,8 @@ export const favoriteInstrumentsPrices = async (c: Context) => {
 // chart price data of main instrument
 export const priceHistory = async (c: Context) => {
     const { symbol, type } = c.req.param();
+    const sym = await symbolInDb(symbol);
 
-    // time_frame in minutes
-    // from in ms
     const { time_frame, from, count } = c.req.query();
 
     // sending dummy data in dev mode
@@ -124,23 +125,29 @@ export const priceHistory = async (c: Context) => {
         });
     }
 
-    const data = await fetchInstrumentCandles({
-        symbol,
+    const candles = await getCryptoHistory({
+        symbol: sym,
         type,
-        timeFrame: time_frame,
-        from,
+        timeframe: time_frame,
+        from: Number(from),
         count,
     });
 
+    if (candles.length === 0) {
+        throw new HTTPException(HTTP_RESPONSE_CODE.SERVICE_UNAVAILABLE, {
+            message: 'Failed to fetch candles',
+        });
+    }
+
     return c.json({
         success: true,
-        priceHistory: data?.map(price => ({
-            time: Number(price.time),
-            open: Number(price.open),
-            high: Number(price.high),
-            low: Number(price.low),
-            close: Number(price.close),
-            volume: Number(price.volume),
+        priceHistory: candles.map(price => ({
+            time: new Date(price.t).getTime(),
+            open: Number(price.o),
+            high: Number(price.h),
+            low: Number(price.l),
+            close: Number(price.c),
+            volume: Number(price.v),
         })),
     });
 };

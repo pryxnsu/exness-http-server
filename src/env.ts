@@ -20,6 +20,8 @@ export type ExnessEnv = {
     positionChannel: string;
     dealsChannel: string;
     accountChannel: string;
+    apcaApiKeyId: string;
+    apcaApiSecretKey: string;
 };
 
 export function getEnv(key: string): string {
@@ -48,5 +50,7 @@ export const env = {
     orderExecutedChannel: getEnv('ORDER_CHANNEL'),
     positionChannel: getEnv('POSITION_CHANNEL'),
     dealsChannel: getEnv('DEALS_CHANNEL'),
-    accountChannel: getEnv('ACCOUNT_WALLET_CHANNEL')
+    accountChannel: getEnv('ACCOUNT_WALLET_CHANNEL'),
+    apcaApiKeyId: getEnv('APCA-API-KEY-ID'),
+    apcaApiSecretKey: getEnv('APCA-API-SECRET-KEY'),
 } as ExnessEnv;
