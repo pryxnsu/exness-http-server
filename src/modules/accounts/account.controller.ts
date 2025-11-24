@@ -323,7 +323,7 @@ export const closePosition = async (c: Context) => {
             const newBalance = oldBalance + pnl;
             const newEquity = oldEquity + pnl;
             const newMargin = oldMargin - marginToRelease;
-            const newFreeMargin = oldFreeMargin + marginToRelease;
+            const newFreeMargin = newEquity - newMargin;
 
             const updatedwallet = await updateWallet(
                 walletId,
