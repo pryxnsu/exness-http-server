@@ -11,6 +11,7 @@ export type PgTransactionType = PgTransaction<
 export interface PositionEventProp {
     dealId: string;
     userId: string;
+    walletId?: string;
     positionId: string;
     type: number;
     price?: number;

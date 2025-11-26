@@ -194,6 +194,7 @@ export const executeOrder = async (c: Context) => {
     publishPositionEvent('open', {
         dealId: d.id,
         positionId: p.id,
+        walletId,
         userId: user.id,
         type,
         price,
