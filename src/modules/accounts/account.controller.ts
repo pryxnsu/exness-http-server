@@ -53,7 +53,7 @@ export const executeOrder = async (c: Context) => {
         volume: number;
     };
 
-    const symbol = await symbolInDb(sym);
+    const { symbol } = await symbolInDb(sym);
 
     const w = await getWalletByWalletId({ walletId, userId: user.id });
 

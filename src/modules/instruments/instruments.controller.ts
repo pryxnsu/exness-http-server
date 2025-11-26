@@ -105,8 +105,8 @@ export const favoriteInstrumentsPrices = async (c: Context) => {
 
 // chart price data of main instrument
 export const priceHistory = async (c: Context) => {
-    const { symbol, type } = c.req.param();
-    const sym = await symbolInDb(symbol);
+    const { symbol } = c.req.param();
+    const { symbol: sym, type } = await symbolInDb(symbol);
 
     const { time_frame, from, count } = c.req.query();
 

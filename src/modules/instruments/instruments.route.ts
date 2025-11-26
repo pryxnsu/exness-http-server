@@ -16,12 +16,17 @@ export const instrumentsRouter = new Hono();
 // add new instrument
 instrumentsRouter.post('/', zValidator('json', AddNewInstrumentSchema), addNewInstrument);
 // add new instrument to favorites
-instrumentsRouter.post('/favorites', auth, zValidator('json', AddFavoriteInstrumentSchema), addInstrumentToFavorites);
+instrumentsRouter.post(
+    '/favorites',
+    auth,
+    zValidator('json', AddFavoriteInstrumentSchema),
+    addInstrumentToFavorites
+);
 // all favorites instruments
 instrumentsRouter.get('/', auth, fetchFavoriteInstruments);
 // favorites instruments
 instrumentsRouter.get('/favorites', auth, favoriteInstrumentsPrices);
 // fetch candles of instrument
-instrumentsRouter.get('/:symbol/:type/candles', auth, priceHistory);
+instrumentsRouter.get('/:symbol/candles', auth, priceHistory);
 // remove instrument from favorite
 instrumentsRouter.delete('/:id', auth, removeInstrumentFromFavorite);

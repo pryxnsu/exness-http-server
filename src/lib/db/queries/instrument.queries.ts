@@ -96,22 +96,23 @@ export async function destroyInstrument(
     }
 }
 
-export async function symbolInDb(sym: string): Promise<string> {
+export async function symbolInDb(sym: string): Promise<Record<string, string>> {
     try {
-        const [{ symbol }] = await db
+        const [{ symbol, type }] = await db
             .select({
                 symbol: instrument.symbol,
+                type: instrument.type,
             })
             .from(instrument)
             .where(ilike(sql`REPLACE(${instrument.symbol}, '/', '')`, `%${sym}%`));
 
-        if (!symbol) {
+        if (!symbol || !type) {
             throw new HTTPException(HTTP_RESPONSE_CODE.BAD_REQUEST, {
                 message: 'Symbol is not allowed to trade',
             });
         }
 
-        return symbol;
+        return { symbol, type };
     } catch (err: unknown) {
         console.error('[DB error] Failed to find symbol', err);
         throw new HTTPException(HTTP_RESPONSE_CODE.SERVER_ERROR, {
@@ -140,7 +141,7 @@ export async function addDefaultInsToFav(userId: string, trx?: PgTransactionType
         const records = instruments.map((i, idx) => ({
             userId,
             instrumentId: i.id,
-            sortOrder: idx
+            sortOrder: idx,
         }));
 
         await exe.insert(favoriteInstrument).values(records);
