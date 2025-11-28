@@ -4,13 +4,8 @@ import { User } from '../../lib/db/schema';
 import { env } from '../../env';
 import { TIME } from '../../constant';
 
-async function generateAccessAndRefreshToken(
-    user: User
-): Promise<{ accessToken: string; refreshToken: string }> {
-    const accessToken = await sign(
-        { user, exp: Math.floor(Date.now() / 1000) + TIME.ONE_DAY },
-        env.jwtSecret
-    );
+async function generateAccessAndRefreshToken(user: User): Promise<{ accessToken: string; refreshToken: string }> {
+    const accessToken = await sign({ user, exp: Math.floor(Date.now() / 1000) + TIME.ONE_DAY }, env.jwtSecret);
     const refreshToken = await sign(
         { id: user.id, exp: Math.floor(Date.now() / 1000) + TIME.SEVEN_DAYS },
         env.jwtSecret

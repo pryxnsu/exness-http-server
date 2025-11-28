@@ -40,10 +40,7 @@ export function publishOrderEvent(
     }
 }
 
-export function publishPositionEvent(
-    t: 'open' | 'close' | 'upd' | 'part_close',
-    data: PositionEventProp
-) {
+export function publishPositionEvent(t: 'open' | 'close' | 'upd' | 'part_close', data: PositionEventProp) {
     try {
         publish(env.positionChannel, {
             e: 'positions',

@@ -75,10 +75,7 @@ export async function getWalletByWalletId({
     }
 }
 
-export async function getWallet(
-    userId: string,
-    walletType: 'real' | 'demo'
-): Promise<Wallet | null> {
+export async function getWallet(userId: string, walletType: 'real' | 'demo'): Promise<Wallet | null> {
     try {
         const [w] = await db
             .select()

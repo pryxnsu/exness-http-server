@@ -13,12 +13,7 @@ import { User } from '../../lib/db/schema';
 import { createUser, getUserByEmail } from '../../lib/db/queries/auth.queries';
 import { generateAccessAndRefreshToken, userReqInfo } from './auth.service';
 import { createSession, updateSession } from '../../lib/db/queries/session.queries';
-import {
-    createAccount,
-    getAccountById,
-    getAccountByUserId,
-    updateAccount,
-} from '../../lib/db/queries/account.queries';
+import { createAccount, getAccountById, getAccountByUserId, updateAccount } from '../../lib/db/queries/account.queries';
 import { createWallet } from '../../lib/db/queries/wallet.queries';
 import { addDefaultInsToFav } from '../../lib/db/queries/instrument.queries';
 
@@ -106,14 +101,17 @@ export const googleCallback = async (c: Context) => {
                 scope: tokens.scope as string,
             });
 
-            await createWallet({
-                type: 'demo',
-                balance: 10000.0,
-                equity: 10000.0,
-                margin: 0.0,
-                freeMargin: 10000.0,
-                userId: newUser.id
-            }, tx);
+            await createWallet(
+                {
+                    type: 'demo',
+                    balance: 10000.0,
+                    equity: 10000.0,
+                    margin: 0.0,
+                    freeMargin: 10000.0,
+                    userId: newUser.id,
+                },
+                tx
+            );
 
             await addDefaultInsToFav(newUser.id, tx);
 
@@ -182,8 +180,5 @@ export const logout = async (c: Context) => {
 
     deleteCookie(c, env.accessTokenName);
     deleteCookie(c, env.refreshTokenName);
-    return c.json(
-        { success: true, message: 'Logged out successfully' },
-        HTTP_RESPONSE_CODE.SUCCESS
-    );
+    return c.json({ success: true, message: 'Logged out successfully' }, HTTP_RESPONSE_CODE.SUCCESS);
 };

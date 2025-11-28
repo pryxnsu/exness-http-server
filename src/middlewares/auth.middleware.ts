@@ -15,8 +15,7 @@ declare module 'hono' {
 }
 export const auth = async (c: Context, next: any) => {
     try {
-        const token =
-            getCookie(c, env.accessTokenName) ?? c.req.header('Authorization')?.split(' ')[1];
+        const token = getCookie(c, env.accessTokenName) ?? c.req.header('Authorization')?.split(' ')[1];
         if (!token || !token.trim()) {
             throw new HTTPException(HTTP_RESPONSE_CODE.UNAUTHORIZED, {
                 message: 'Unauthorized! Please login',

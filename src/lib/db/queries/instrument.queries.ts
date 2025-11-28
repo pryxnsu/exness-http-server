@@ -6,10 +6,7 @@ import { HTTPException } from 'hono/http-exception';
 import { and, ilike } from 'drizzle-orm/sql/expressions/conditions';
 import { PgTransactionType } from '../../../types';
 
-export async function createNewInstrument(
-    symbol: string,
-    type: 'forex' | 'crypto' | 'stock'
-): Promise<Instrument> {
+export async function createNewInstrument(symbol: string, type: 'forex' | 'crypto' | 'stock'): Promise<Instrument> {
     try {
         const [ni] = await db
             .insert(instrument)
@@ -76,16 +73,11 @@ export async function getFavoriteInstrumentsByUserId(userId: string) {
 }
 
 // delete instrument from favorites and return id of it
-export async function destroyInstrument(
-    userId: string,
-    instrumentId: string
-): Promise<{ id: string }> {
+export async function destroyInstrument(userId: string, instrumentId: string): Promise<{ id: string }> {
     try {
         const [deletedIns] = await db
             .delete(favoriteInstrument)
-            .where(
-                and(eq(favoriteInstrument.userId, userId), eq(favoriteInstrument.id, instrumentId))
-            )
+            .where(and(eq(favoriteInstrument.userId, userId), eq(favoriteInstrument.id, instrumentId)))
             .returning({ id: favoriteInstrument.id });
         return deletedIns;
     } catch (err: unknown) {

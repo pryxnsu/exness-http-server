@@ -30,11 +30,7 @@ export const addInstrumentToFavorites = async (c: Context) => {
     // @ts-ignore
     const body = c.req.valid('json');
     const user = c.get('user');
-    const instrument = await createFavoriteInstrument(
-        user?.id as string,
-        body['instrumentId'],
-        body['sortOrder']
-    );
+    const instrument = await createFavoriteInstrument(user?.id as string, body['instrumentId'], body['sortOrder']);
 
     return c.json(
         { success: true, message: 'Instrument added successfully', data: instrument },
@@ -82,10 +78,7 @@ export const favoriteInstrumentsPrices = async (c: Context) => {
     const symbols = favoriteInstruments.map(item => item.symbol);
 
     if (symbols.length === 0) {
-        return c.json(
-            { success: true, message: 'No favorite symbols' },
-            HTTP_RESPONSE_CODE.SUCCESS
-        );
+        return c.json({ success: true, message: 'No favorite symbols' }, HTTP_RESPONSE_CODE.SUCCESS);
     }
 
     const data = await fetchPriceOfSymbol(symbols.join(','));
@@ -113,10 +106,7 @@ export const favoriteInstrumentsPrices = async (c: Context) => {
             ask: symData.latestQuote?.ap,
             change:
                 symData.dailyBar?.c && symData.prevDailyBar?.c
-                    ? (
-                          ((symData.dailyBar.c - symData.prevDailyBar.c) / symData.prevDailyBar.c) *
-                          100
-                      ).toFixed(2)
+                    ? (((symData.dailyBar.c - symData.prevDailyBar.c) / symData.prevDailyBar.c) * 100).toFixed(2)
                     : '0.00',
         };
         result.push(quote);

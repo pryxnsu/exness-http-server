@@ -28,15 +28,12 @@ const msTo: Record<string, string> = {
 
 export async function fetchPriceOfSymbol(symbols: string): Promise<AlpacaSnapshotsResponse> {
     try {
-        const res = await fetch(
-            `https://data.alpaca.markets/v1beta3/crypto/us/snapshots?symbols=${symbols}`,
-            {
-                headers: {
-                    'Apca-Api-Key-Id': env.apcaApiKeyId,
-                    'Apca-Api-Secret-Key': env.apcaApiSecretKey,
-                },
-            }
-        );
+        const res = await fetch(`https://data.alpaca.markets/v1beta3/crypto/us/snapshots?symbols=${symbols}`, {
+            headers: {
+                'Apca-Api-Key-Id': env.apcaApiKeyId,
+                'Apca-Api-Secret-Key': env.apcaApiSecretKey,
+            },
+        });
 
         return await res.json();
     } catch (err: unknown) {

@@ -47,17 +47,10 @@ export async function updateOrder(
     }
 }
 
-export async function getOrderByPositionId(
-    positionId: string,
-    trx?: PgTransactionType
-): Promise<Order> {
+export async function getOrderByPositionId(positionId: string, trx?: PgTransactionType): Promise<Order> {
     try {
         const exe = trx ?? db;
-        const [o] = await exe
-            .select()
-            .from(order)
-            .where(eq(order.positionId, positionId))
-            .$withCache();
+        const [o] = await exe.select().from(order).where(eq(order.positionId, positionId)).$withCache();
 
         if (!o) {
             throw new HTTPException(HTTP_RESPONSE_CODE.BAD_REQUEST, { message: 'Order not found' });

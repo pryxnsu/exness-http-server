@@ -6,11 +6,7 @@ import { HTTPException } from 'hono/http-exception';
 
 export async function getAccountById(accId: string): Promise<Account | null> {
     try {
-        const [a] = await db
-            .select()
-            .from(account)
-            .where(eq(account.accountId, accId))
-            .$withCache();
+        const [a] = await db.select().from(account).where(eq(account.accountId, accId)).$withCache();
         return a || null;
     } catch (err: unknown) {
         console.error('[DB error] Failed to fetch account:', err);
@@ -75,10 +71,7 @@ export async function createAccount({
     }
 }
 
-export async function updateAccount(
-    id: string,
-    values: Partial<typeof account.$inferInsert>
-): Promise<void> {
+export async function updateAccount(id: string, values: Partial<typeof account.$inferInsert>): Promise<void> {
     try {
         await db
             .update(account)

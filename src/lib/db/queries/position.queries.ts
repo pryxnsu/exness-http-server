@@ -81,7 +81,7 @@ export async function getPositionsByUserId(
     filters: { fromDate?: Date; active?: boolean; toDate?: Date }
 ): Promise<Position[]> {
     try {
-        const {fromDate, toDate, active} = filters;
+        const { fromDate, toDate, active } = filters;
         const conditions = [eq(position.userId, userId)];
 
         if (active) conditions.push(eq(position.status, 'open'));

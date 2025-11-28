@@ -23,8 +23,8 @@ export const TIME = {
 } as const;
 
 export type InstrumentConfig = {
-    contractSize: number; 
-    digits: number; 
+    contractSize: number;
+    digits: number;
     marginFactor: number;
     symbolType: 'forex' | 'crypto' | 'metal';
 };

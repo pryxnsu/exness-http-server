@@ -5,10 +5,7 @@ import { HTTP_RESPONSE_CODE } from '../../../constant';
 import { PgTransactionType } from '../../../types';
 import { and, eq, gte, lte } from 'drizzle-orm';
 
-export async function createDeal(
-    data: Omit<typeof deal.$inferInsert, 'id'>,
-    trx?: PgTransactionType
-): Promise<Deal> {
+export async function createDeal(data: Omit<typeof deal.$inferInsert, 'id'>, trx?: PgTransactionType): Promise<Deal> {
     try {
         const exe = trx ?? db;
         const [d] = await exe.insert(deal).values(data).returning();
@@ -46,14 +43,7 @@ export async function getDealByPosition(from: Date, to: Date, userId: string) {
             })
             .from(deal)
             .leftJoin(position, eq(deal.positionId, position.id))
-            .where(
-                and(
-                    eq(position.userId, userId),
-                    eq(deal.direction, 1),
-                    gte(deal.time, from),
-                    lte(deal.time, to)
-                )
-            );
+            .where(and(eq(position.userId, userId), eq(deal.direction, 1), gte(deal.time, from), lte(deal.time, to)));
 
         return result;
     } catch (err: unknown) {

@@ -82,10 +82,7 @@ export const account = pgTable(
             .defaultNow()
             .$onUpdate(() => new Date()),
     },
-    t => [
-        index('account_user_id_idx').on(t.userId),
-        index('account_account_id_idx').on(t.accountId),
-    ]
+    t => [index('account_user_id_idx').on(t.userId), index('account_account_id_idx').on(t.accountId)]
 );
 
 export const wallet = pgTable(
@@ -100,9 +97,7 @@ export const wallet = pgTable(
         balance: numeric('balance', { precision: 14, scale: 2, mode: 'number' }).default(0.0),
         equity: numeric('equity', { precision: 14, scale: 2, mode: 'number' }).default(0.0),
         margin: numeric('margin', { precision: 14, scale: 2, mode: 'number' }).default(0.0),
-        freeMargin: numeric('free_margin', { precision: 14, scale: 2, mode: 'number' }).default(
-            0.0
-        ),
+        freeMargin: numeric('free_margin', { precision: 14, scale: 2, mode: 'number' }).default(0.0),
         currency: text('currency').notNull().default('USD'),
         leverage: integer('leverage').notNull().default(200),
         userId: text('user_id')
@@ -239,9 +234,7 @@ export const deal = pgTable(
             mode: 'number',
         }).default(0.0),
         instrument: text('instrument').notNull(),
-        profit: numeric('profit', { precision: 14, scale: 2, mode: 'number' })
-            .default(0.0)
-            .notNull(),
+        profit: numeric('profit', { precision: 14, scale: 2, mode: 'number' }).default(0.0).notNull(),
         sl: numeric('sl', { precision: 14, scale: 5, mode: 'number' }),
         tp: numeric('tp', { precision: 14, scale: 5, mode: 'number' }),
         commission: numeric('commission', { precision: 14, scale: 5, mode: 'number' }).default(0.0),
