@@ -12,6 +12,7 @@ import { fetchPriceOfSymbol, getCryptoHistory } from './instruments.service';
 import { candlesDummyData, favoritesDummyData } from '../../data';
 import { env } from '../../env';
 import { HTTPException } from 'hono/http-exception';
+import { QuoteResult } from '../../types';
 
 export const addNewInstrument = async (c: Context) => {
     // @ts-ignore
@@ -72,35 +73,56 @@ export const favoriteInstrumentsPrices = async (c: Context) => {
 
     // sending dummy data in dev mode
     if (env.nodeEnv === 'development') {
-        return c.json({ success: true, message: 'Instruments prices', data: favoritesDummyData });
+        return c.json(
+            { success: true, message: 'Instruments prices', data: favoritesDummyData },
+            HTTP_RESPONSE_CODE.SUCCESS
+        );
     }
 
-    // for fast lookup
-    const favoritesMap = new Map(favoriteInstruments.map(fav => [fav.symbol, fav]));
+    const symbols = favoriteInstruments.map(item => item.symbol);
 
-    const prices = await Promise.all(
-        favoriteInstruments.map(f => fetchPriceOfSymbol(f.symbol as string, f.type as string))
-    );
+    if (symbols.length === 0) {
+        return c.json(
+            { success: true, message: 'No favorite symbols' },
+            HTTP_RESPONSE_CODE.SUCCESS
+        );
+    }
 
-    const responseData = prices.reduce((acc, p) => {
-        if (!p?.symbol) return acc;
+    const data = await fetchPriceOfSymbol(symbols.join(','));
 
-        const fav = favoritesMap.get(p.symbol);
-        if (!fav) return acc;
+    const favMap = new Map(favoriteInstruments.map(x => [x.symbol, x]));
 
-        acc.push({
-            id: fav.id,
-            sortOrder: fav.sortOrder,
-            signal: p?.signal,
-            symbol: p?.symbol,
-            bid: Number(p?.bid),
-            ask: Number(p?.ask),
-            change: Number(p?.change),
-        });
-        return acc;
-    }, [] as any[]);
+    const result: QuoteResult[] = [];
 
-    return c.json({ success: true, message: 'Instruments prices', data: responseData });
+    for (const [sym, symData] of Object.entries(data.snapshots)) {
+        const currentInstrument = favMap.get(sym);
+
+        let signal = '';
+
+        if (symData.dailyBar?.c && symData.prevDailyBar?.c) {
+            const priceChange = symData.dailyBar.c - symData.prevDailyBar.c;
+            signal = priceChange >= 0 ? 'up' : 'down';
+        }
+
+        const quote: QuoteResult = {
+            id: currentInstrument?.id,
+            sortOrder: currentInstrument?.sortOrder,
+            signal,
+            symbol: sym,
+            bid: symData.latestQuote?.bp,
+            ask: symData.latestQuote?.ap,
+            change:
+                symData.dailyBar?.c && symData.prevDailyBar?.c
+                    ? (
+                          ((symData.dailyBar.c - symData.prevDailyBar.c) / symData.prevDailyBar.c) *
+                          100
+                      ).toFixed(2)
+                    : '0.00',
+        };
+        result.push(quote);
+    }
+
+    return c.json({ success: true, message: 'Instruments prices', data: result });
 };
 
 // chart price data of main instrument

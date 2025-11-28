@@ -30,3 +30,52 @@ export interface PositionEventProp {
     marginRate: number;
     reason: number;
 }
+
+export interface AlpacaQuote {
+    ap: number;
+    as: number;
+    bp: number;
+    bs: number;
+    t: string;
+}
+
+export interface AlpacaTrade {
+    i: number;
+    p: number;
+    s: number;
+    t: string;
+    tks: string;
+}
+
+export interface AlpacaBar {
+    c: number;
+    h: number;
+    l: number;
+    n: number;
+    o: number;
+    t: string;
+    v: number;
+    vw: number;
+}
+
+export interface AlpacaSnapshot {
+    latestQuote?: AlpacaQuote;
+    latestTrade?: AlpacaTrade;
+    minuteBar?: AlpacaBar;
+    dailyBar?: AlpacaBar;
+    prevDailyBar?: AlpacaBar;
+}
+
+export interface AlpacaSnapshotsResponse {
+    snapshots: Record<string, AlpacaSnapshot>;
+}
+
+export interface QuoteResult {
+    id: string | undefined;
+    sortOrder: number | null | undefined;
+    signal: string;
+    symbol: string;
+    bid: number | undefined;
+    ask: number | undefined;
+    change: string;
+}
