@@ -137,16 +137,16 @@ export const googleCallback = async (c: Context) => {
 
     setCookie(c, env.accessTokenName, accessToken, {
         httpOnly: true,
-        secure: true,
-        sameSite: 'lax',
+        secure: env.nodeEnv === 'production',
+        sameSite: env.nodeEnv === 'development' ? 'lax' : 'none',
         path: '/',
         maxAge: TIME.ONE_DAY,
     });
 
     setCookie(c, env.refreshTokenName, refreshToken, {
         httpOnly: true,
-        secure: true,
-        sameSite: 'lax',
+        secure: env.nodeEnv === 'production',
+        sameSite: env.nodeEnv === 'development' ? 'lax' : 'none',
         path: '/',
         maxAge: TIME.SEVEN_DAYS,
     });
