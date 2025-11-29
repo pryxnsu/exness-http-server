@@ -51,6 +51,6 @@ export const env = {
     positionChannel: getEnv('POSITION_CHANNEL'),
     dealsChannel: getEnv('DEALS_CHANNEL'),
     accountChannel: getEnv('ACCOUNT_WALLET_CHANNEL'),
-    apcaApiKeyId: getEnv('APCA-API-KEY-ID'),
-    apcaApiSecretKey: getEnv('APCA-API-SECRET-KEY'),
+    apcaApiKeyId: getEnv('APCA_API_KEY_ID'),
+    apcaApiSecretKey: getEnv('APCA_API_SECRET_KEY'),
 } as ExnessEnv;
