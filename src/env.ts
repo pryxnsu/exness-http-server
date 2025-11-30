@@ -8,6 +8,7 @@ export type ExnessEnv = {
     clientUrl: string;
     serverUrl: string;
     cookieSecret: string;
+    cookieDomain?: string;
     googleClientId: string;
     googleClientSecret: string;
     jwtSecret: string;
@@ -39,6 +40,7 @@ export const env = {
     clientUrl: getEnv('CLIENT_URL'),
     serverUrl: getEnv('SERVER_URL'),
     cookieSecret: getEnv('COOKIE_SECRET'),
+    cookieDomain: getEnv('COOKIE_DOMAIN'),
     googleClientId: getEnv('GOOGLE_CLIENT_ID'),
     googleClientSecret: getEnv('GOOGLE_CLIENT_SECRET'),
     jwtSecret: getEnv('JWT_SECRET'),

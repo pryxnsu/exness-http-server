@@ -138,7 +138,8 @@ export const googleCallback = async (c: Context) => {
     setCookie(c, env.accessTokenName, accessToken, {
         httpOnly: true,
         secure: env.nodeEnv === 'production',
-        sameSite: env.nodeEnv === 'development' ? 'lax' : 'none',
+        sameSite: 'lax',
+        domain: env.cookieDomain,
         path: '/',
         maxAge: TIME.ONE_DAY,
     });
@@ -146,7 +147,8 @@ export const googleCallback = async (c: Context) => {
     setCookie(c, env.refreshTokenName, refreshToken, {
         httpOnly: true,
         secure: env.nodeEnv === 'production',
-        sameSite: env.nodeEnv === 'development' ? 'lax' : 'none',
+        sameSite: 'Lax',
+        domain: env.cookieDomain,
         path: '/',
         maxAge: TIME.SEVEN_DAYS,
     });
