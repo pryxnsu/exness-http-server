@@ -144,3 +144,31 @@ export async function addDefaultInsToFav(userId: string, trx?: PgTransactionType
         });
     }
 }
+
+export async function getInstrumentByName(symbol: string): Promise<
+    {
+        id: string;
+        symbol: string;
+        type: 'forex' | 'crypto' | 'stock';
+    }[]
+> {
+    try {
+        const instruments = await db
+            .select({
+                id: instrument.id,
+                symbol: instrument.symbol,
+                type: instrument.type,
+            })
+            .from(instrument)
+            .where(ilike(sql`REPLACE(${instrument.symbol}, '/', '')`, `%${symbol}%`))
+            .$withCache();
+
+        return instruments;
+    } catch (err: unknown) {
+        console.error('[DB Error] Failed to get instrument by symbol', err);
+
+        throw new HTTPException(HTTP_RESPONSE_CODE.SERVER_ERROR, {
+            message: 'Failed to get instrument',
+        });
+    }
+}

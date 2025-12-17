@@ -4,6 +4,7 @@ import {
     createNewInstrument,
     destroyInstrument,
     getFavoriteInstrumentsByUserId,
+    getInstrumentByName,
     symbolInDb,
 } from '../../lib/db/queries/instrument.queries';
 import { HTTP_RESPONSE_CODE } from '../../constant';
@@ -126,4 +127,18 @@ export const priceHistory = async (c: Context) => {
             volume: Number(price.v),
         })),
     });
+};
+
+export const searchInstrument = async (c: Context) => {
+    const { symbol } = c.req.query();
+
+    if (!symbol || symbol.trim() === '') {
+        throw new HTTPException(HTTP_RESPONSE_CODE.BAD_REQUEST, { message: 'Empty query provided' });
+    }
+
+    const instruments = await getInstrumentByName(symbol.trim());
+
+    const result = await buildQuotesFromInstruments(instruments);
+
+    return c.json({ success: true, message: 'Instrument found', data: result ?? [] }, HTTP_RESPONSE_CODE.SUCCESS);
 };

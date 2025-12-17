@@ -6,6 +6,7 @@ import {
     favoriteInstrumentsPrices,
     priceHistory,
     removeInstrumentFromFavorite,
+    searchInstrument,
 } from './instruments.controller';
 import { auth } from '../../middlewares/auth.middleware';
 import { zValidator } from '@hono/zod-validator';
@@ -25,3 +26,5 @@ instrumentsRouter.get('/favorites', auth, favoriteInstrumentsPrices);
 instrumentsRouter.get('/:symbol/candles', auth, priceHistory);
 // remove instrument from favorite
 instrumentsRouter.delete('/:id', auth, removeInstrumentFromFavorite);
+// search instrument
+instrumentsRouter.get('/search', searchInstrument);
