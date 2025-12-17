@@ -8,11 +8,10 @@ import {
 } from '../../lib/db/queries/instrument.queries';
 import { HTTP_RESPONSE_CODE } from '../../constant';
 import { User } from '../../lib/db/schema';
-import { fetchPriceOfSymbol, getCryptoHistory } from './instruments.service';
+import { buildQuotesFromInstruments, getCryptoHistory } from './instruments.service';
 import { candlesDummyData, favoritesDummyData } from '../../data';
 import { env } from '../../env';
 import { HTTPException } from 'hono/http-exception';
-import { QuoteResult } from '../../types';
 
 export const addNewInstrument = async (c: Context) => {
     // @ts-ignore
@@ -75,44 +74,9 @@ export const favoriteInstrumentsPrices = async (c: Context) => {
         );
     }
 
-    const symbols = favoriteInstruments.map(item => item.symbol);
+    const result = await buildQuotesFromInstruments(favoriteInstruments);
 
-    if (symbols.length === 0) {
-        return c.json({ success: true, message: 'No favorite symbols' }, HTTP_RESPONSE_CODE.SUCCESS);
-    }
-
-    const data = await fetchPriceOfSymbol(symbols.join(','));
-
-    const favMap = new Map(favoriteInstruments.map(x => [x.symbol, x]));
-
-    const result: QuoteResult[] = [];
-
-    for (const [sym, symData] of Object.entries(data.snapshots)) {
-        const currentInstrument = favMap.get(sym);
-
-        let signal = '';
-
-        if (symData.dailyBar?.c && symData.prevDailyBar?.c) {
-            const priceChange = symData.dailyBar.c - symData.prevDailyBar.c;
-            signal = priceChange >= 0 ? 'up' : 'down';
-        }
-
-        const quote: QuoteResult = {
-            id: currentInstrument?.id,
-            sortOrder: currentInstrument?.sortOrder,
-            signal,
-            symbol: sym,
-            bid: symData.latestQuote?.bp,
-            ask: symData.latestQuote?.ap,
-            change:
-                symData.dailyBar?.c && symData.prevDailyBar?.c
-                    ? (((symData.dailyBar.c - symData.prevDailyBar.c) / symData.prevDailyBar.c) * 100).toFixed(2)
-                    : '0.00',
-        };
-        result.push(quote);
-    }
-
-    return c.json({ success: true, message: 'Instruments prices', data: result });
+    return c.json({ success: true, message: 'Instruments prices', data: result ?? [] });
 };
 
 // chart price data of main instrument

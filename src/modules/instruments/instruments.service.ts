@@ -1,7 +1,7 @@
 import { HTTPException } from 'hono/http-exception';
 import { env } from '../../env';
 import { HTTP_RESPONSE_CODE } from '../../constant';
-import { AlpacaSnapshotsResponse } from '../../types';
+import { AlpacaSnapshotsResponse, QuoteResult } from '../../types';
 
 export interface CandleResProp {
     c: number;
@@ -106,4 +106,53 @@ export async function getCryptoHistory({
             message: ' Failed to fetch Candles data',
         });
     }
+}
+
+export async function buildQuotesFromInstruments(
+    instruments: {
+        id: string;
+        sortOrder?: number | null;
+        instrumentId?: string | null;
+        symbol: string | null;
+        type: 'forex' | 'crypto' | 'stock' | null;
+    }[]
+) {
+    const symbols = instruments.map(item => item.symbol);
+
+    if (symbols.length === 0) {
+        return [];
+    }
+
+    const data = await fetchPriceOfSymbol(symbols.join(','));
+
+    const favMap = new Map(instruments.map(x => [x.symbol, x]));
+
+    const result: QuoteResult[] = [];
+
+    for (const [sym, symData] of Object.entries(data.snapshots)) {
+        const currentInstrument = favMap.get(sym);
+
+        let signal = '';
+
+        if (symData.dailyBar?.c && symData.prevDailyBar?.c) {
+            const priceChange = symData.dailyBar.c - symData.prevDailyBar.c;
+            signal = priceChange >= 0 ? 'up' : 'down';
+        }
+
+        const quote: QuoteResult = {
+            id: currentInstrument?.id,
+            sortOrder: currentInstrument?.sortOrder,
+            signal,
+            symbol: sym,
+            bid: symData.latestQuote?.bp,
+            ask: symData.latestQuote?.ap,
+            change:
+                symData.dailyBar?.c && symData.prevDailyBar?.c
+                    ? (((symData.dailyBar.c - symData.prevDailyBar.c) / symData.prevDailyBar.c) * 100).toFixed(2)
+                    : '0.00',
+        };
+        result.push(quote);
+    }
+
+    return result;
 }
