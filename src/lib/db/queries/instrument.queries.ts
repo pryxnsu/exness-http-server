@@ -172,3 +172,26 @@ export async function getInstrumentByName(symbol: string): Promise<
         });
     }
 }
+
+export async function getFavoriteInstrumentByInstrumentId(instrumentId: string, userId: string) {
+    try {
+        return await db
+            .select({
+                id: favoriteInstrument.id,
+                sortOrder: favoriteInstrument.sortOrder,
+                instrumentId: instrument.id,
+                symbol: instrument.symbol,
+                type: instrument.type,
+            })
+            .from(favoriteInstrument)
+            .leftJoin(instrument, eq(favoriteInstrument.instrumentId, instrument.id))
+            .where(and(eq(favoriteInstrument.instrumentId, instrumentId), eq(favoriteInstrument.userId, userId)))
+            .$withCache();
+    } catch (err: unknown) {
+        console.error('[DB Error] Failed to get instrument by id', err);
+
+        throw new HTTPException(HTTP_RESPONSE_CODE.SERVER_ERROR, {
+            message: 'Failed to get instrument by instrument id',
+        });
+    }
+}

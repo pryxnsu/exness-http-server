@@ -3,6 +3,7 @@ import {
     createFavoriteInstrument,
     createNewInstrument,
     destroyInstrument,
+    getFavoriteInstrumentByInstrumentId,
     getFavoriteInstrumentsByUserId,
     getInstrumentByName,
     symbolInDb,
@@ -32,8 +33,12 @@ export const addInstrumentToFavorites = async (c: Context) => {
     const user = c.get('user');
     const instrument = await createFavoriteInstrument(user?.id as string, body['instrumentId'], body['sortOrder']);
 
+    const ins = await getFavoriteInstrumentByInstrumentId(instrument.instrumentId, user?.id as string);
+
+    const result = await buildQuotesFromInstruments(ins);
+
     return c.json(
-        { success: true, message: 'Instrument added successfully', data: instrument },
+        { success: true, message: 'Instrument added successfully', data: result[0] },
         HTTP_RESPONSE_CODE.SUCCESS
     );
 };
