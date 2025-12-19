@@ -1,7 +1,9 @@
 import { HTTPException } from 'hono/http-exception';
 import { env } from '../../env';
 import { HTTP_RESPONSE_CODE } from '../../constant';
-import { AlpacaSnapshotsResponse, QuoteResult } from '../../types';
+import { AlpacaSnapshot, AlpacaSnapshotsResponse, QuoteResult } from '../../types';
+import { redis } from '../../services/redis';
+import { quotePriceKey } from '../../services/redis/keys';
 
 export interface CandleResProp {
     c: number;
@@ -117,19 +119,52 @@ export async function buildQuotesFromInstruments(
         type: 'forex' | 'crypto' | 'stock' | null;
     }[]
 ) {
-    const symbols = instruments.map(item => item.symbol);
+    const symbols = instruments.map(item => item.symbol as string);
 
     if (symbols.length === 0) {
         return [];
     }
 
-    const data = await fetchPriceOfSymbol(symbols.join(','));
+    const key = quotePriceKey();
+
+    let alpacaData: Record<string, AlpacaSnapshot> = {};
+
+    const cachedDataOfSymbols = await redis.hmGet(key, symbols);
+
+    const missingSymbols: string[] = [];
+
+    symbols.forEach((symbol, idx) => {
+        if (cachedDataOfSymbols[idx]) {
+            alpacaData[symbol] = JSON.parse(cachedDataOfSymbols[idx]);
+        } else {
+            missingSymbols.push(symbol);
+        }
+    });
+
+    if (missingSymbols.length > 0) {
+        try {
+            const data = await fetchPriceOfSymbol(missingSymbols.join(','));
+
+            const hash: Record<string, string> = {};
+
+            for (const [symbol, alpacaSnapshot] of Object.entries(data.snapshots)) {
+                alpacaData[symbol] = alpacaSnapshot;
+                hash[symbol] = JSON.stringify(alpacaSnapshot);
+            }
+
+            if (Object.keys(hash).length > 0) {
+                await redis.hSet(key, hash);
+            }
+        } catch (err: unknown) {
+            console.error('[Alpaca API Error] Failed to fetch prices for missing symbols:', err);
+        }
+    }
 
     const favMap = new Map(instruments.map(x => [x.symbol, x]));
 
     const result: QuoteResult[] = [];
 
-    for (const [sym, symData] of Object.entries(data.snapshots)) {
+    for (const [sym, symData] of Object.entries(alpacaData)) {
         const currentInstrument = favMap.get(sym);
 
         let signal = '';
